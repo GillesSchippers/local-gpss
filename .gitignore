@@ -11,3 +11,4 @@ output/
 local-gpss.json
 .vs/
 *.user
+/Properties/launchSettings.json

@@ -275,8 +275,9 @@ public class Database
                 }
             }
 
-            if (search.Value.LegalOnly && needsAnd) sql += "AND " + (table == "bundle" ? " bundle.legal == 1 " : " legal == 1 ");
-            else if (search.Value.LegalOnly) sql += (table == "bundle" ? "WHERE bundle.legal == 1 " : "WHERE legal == 1 ");
+            // FIX: Use '=' instead of '=='
+            if (search.Value.LegalOnly && needsAnd) sql += "AND " + (table == "bundle" ? " bundle.legal = 1 " : " legal = 1 ");
+            else if (search.Value.LegalOnly) sql += (table == "bundle" ? "WHERE bundle.legal = 1 " : "WHERE legal = 1 ");
             
             
             if (search.Value.SortField != "")
