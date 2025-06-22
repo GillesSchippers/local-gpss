@@ -2,29 +2,32 @@ using System.Data;
 using System.Text.Json;
 using local_gpss.models;
 using local_gpss.utils;
-using Microsoft.Data.Sqlite;
+using MySqlConnector;
 using PKHeX.Core;
 
 namespace local_gpss.database;
 
 public class Database
 {
-    private readonly SqliteConnection _connection;
+    private readonly string _connectionString;
 
     private Database()
     {
-        _connection = new SqliteConnection("Data Source=gpss.db;foreign keys=true;");
-        _connection.Open();
-
-        Migrate();
+        var config = Helpers.Init() ?? Helpers.FirstTime();
+        _connectionString = $"Server={config.MariaDbHost};Port={config.MariaDbPort};User={config.MariaDbUser};Password={config.MariaDbPassword};Database={config.MariaDbDatabase};";
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        Migrate(connection);
     }
 
     public static Database? Instance { get; } = new();
-    
+
     #region Pokemon Functions
     public dynamic? CheckIfPokemonExists(string base64, bool returnId = false)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = $"SELECT {(returnId ? "id" : "download_code")} FROM pokemon WHERE base_64 = @base64";
         cmd.Parameters.AddWithValue("@base64", base64);
 
@@ -39,9 +42,11 @@ public class Database
     
     public long InsertPokemon(string base64, bool legal, string code, string generation)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText =
-            @"INSERT INTO pokemon (upload_datetime, download_code, download_count, generation, legal, base_64) VALUES (@upload_datetime, @download_code, @download_count, @generation, @legal, @base_64); SELECT last_insert_rowid();";
+            @"INSERT INTO pokemon (upload_datetime, download_code, download_count, generation, legal, base_64) VALUES (@upload_datetime, @download_code, @download_count, @generation, @legal, @base_64); SELECT LAST_INSERT_ID();";
         cmd.Parameters.AddWithValue("@upload_datetime", DateTime.Now);
         cmd.Parameters.AddWithValue("@download_code", code);
         cmd.Parameters.AddWithValue("@download_count", 0);
@@ -49,7 +54,7 @@ public class Database
         cmd.Parameters.AddWithValue("@legal", legal);
         cmd.Parameters.AddWithValue("@base_64", base64);
         
-        return (long)cmd.ExecuteScalar();
+        return Convert.ToInt32(cmd.ExecuteScalar());
     }
     #endregion
     
@@ -59,7 +64,9 @@ public class Database
     {
         var valuesStr = string.Join(" UNION ALL ", pokemonIds.Select(id => $"SELECT {id} AS pokemon_id"));
         
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = $"""
                                WITH input_pokemon_ids AS (
                                    {valuesStr}
@@ -88,9 +95,11 @@ public class Database
     
     public void InsertBundle(bool legal, string code, string minGen, string maxGen, List<long> ids)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText =
-            @"INSERT INTO bundle (upload_datetime, download_code, download_count, legal, min_gen, max_gen) VALUES (@upload_datetime, @download_code, @download_count, @legal, @min_gen, @max_gen); SELECT last_insert_rowid();";
+            @"INSERT INTO bundle (upload_datetime, download_code, download_count, legal, min_gen, max_gen) VALUES (@upload_datetime, @download_code, @download_count, @legal, @min_gen, @max_gen); SELECT LAST_INSERT_ID();";
         cmd.Parameters.AddWithValue("@upload_datetime", DateTime.Now);
         cmd.Parameters.AddWithValue("@download_code", code);
         cmd.Parameters.AddWithValue("@download_count", 0);
@@ -125,16 +134,20 @@ public class Database
     #region Generic Functions
     public bool CodeExists(string table, string code)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = $"SELECT EXISTS(SELECT 1 FROM {table} WHERE download_code = @code)";
         cmd.Parameters.AddWithValue("@code", code);
 
-        return (Int64)cmd.ExecuteScalar() == 1;
+        return Convert.ToInt32(cmd.ExecuteScalar()) == 1;
     }
 
     public void IncrementDownload(string table, string code)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         cmd.CommandText = $"UPDATE {table} SET download_count = download_count + 1 WHERE download_code = @code";
         cmd.Parameters.AddWithValue("@code", code);
         cmd.ExecuteNonQuery();
@@ -148,7 +161,9 @@ public class Database
     
     public int Count(string table, Search? search = null)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         var sql = GenerateBaseSelectSql(table, true, search);
 
         cmd.CommandText = sql;
@@ -161,7 +176,9 @@ public class Database
 
     public List<T> List<T>(string table, int page = 1, int pageSize = 30, Search? search = null)
     {
-        var cmd = _connection.CreateCommand();
+        using var connection = new MySqlConnection(_connectionString);
+        connection.Open();
+        using var cmd = connection.CreateCommand();
         var sql = GenerateBaseSelectSql(table, false, search);
 
         sql += "LIMIT " + pageSize;
@@ -272,18 +289,18 @@ public class Database
     }
 
 
-    private void Migrate()
+    private void Migrate(MySqlConnection connection)
     {
-        var cmd = _connection.CreateCommand();
+        using var cmd = connection.CreateCommand();
 
         cmd.CommandText =
             """
             CREATE TABLE IF NOT EXISTS pokemon (
-                id INTEGER PRIMARY KEY,
+                id INT AUTO_INCREMENT PRIMARY KEY,
                 upload_datetime DATETIME NOT NULL,
-                download_code TEXT UNIQUE,
-                download_count INTEGER,
-                generation TEXT NOT NULL,
+                download_code VARCHAR(255) UNIQUE,
+                download_count INT,
+                generation VARCHAR(32) NOT NULL,
                 legal BOOLEAN NOT NULL,
                 base_64 TEXT NOT NULL
             );
@@ -293,26 +310,26 @@ public class Database
         cmd.CommandText =
             """
             CREATE TABLE IF NOT EXISTS bundle (
-                id INTEGER PRIMARY KEY,
-                download_code TEXT UNIQUE,
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                download_code VARCHAR(255) UNIQUE,
                 upload_datetime DATETIME NOT NULL,
-                download_count INTEGER,
+                download_count INT,
                 legal BOOLEAN NOT NULL,
-                min_gen TEXT NOT NULL,
-                max_gen TEXT NOT NULL
-            )
+                min_gen VARCHAR(32) NOT NULL,
+                max_gen VARCHAR(32) NOT NULL
+            );
             """;
         cmd.ExecuteNonQuery();
 
         cmd.CommandText =
             """
             CREATE TABLE IF NOT EXISTS bundle_pokemon (
-                id INTEGER PRIMARY KEY,
-                pokemon_id INTEGER,
-                bundle_id INTEGER,
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                pokemon_id INT,
+                bundle_id INT,
                 FOREIGN KEY (pokemon_id) REFERENCES pokemon(id) ON DELETE CASCADE,
                 FOREIGN KEY (bundle_id) REFERENCES bundle(id) ON DELETE CASCADE
-            )
+            );
             """;
         cmd.ExecuteNonQuery();
     }

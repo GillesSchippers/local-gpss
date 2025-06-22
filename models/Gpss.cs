@@ -1,10 +1,9 @@
 using System.Text.Json.Serialization;
-using Microsoft.Data.Sqlite;
-using Microsoft.VisualBasic;
+using MySqlConnector;
 
 namespace local_gpss.models;
 
-public struct GpssPokemon(SqliteDataReader? reader)
+public struct GpssPokemon(MySqlDataReader? reader)
 {
     [JsonPropertyName("legal")]
     public bool Legal { get; set; } = reader?.GetBoolean(reader.GetOrdinal("legal")) ?? false;
@@ -18,7 +17,6 @@ public struct GpssPokemon(SqliteDataReader? reader)
     [JsonPropertyName("generation")]
     public string Generation { get; set; } = reader?.GetString(reader.GetOrdinal("generation")) ?? "";
 }
-
 
 public struct GpssBundlePokemon()
 {
@@ -44,8 +42,8 @@ public struct GpssBundle()
     [JsonPropertyName("download_codes")] public List<string> DownloadCodes { get; set; }
     [JsonPropertyName("download_code")] public string DownloadCode { get; set; }
     [JsonPropertyName("patreon")] public bool Patreon { get; } = false;
-    [JsonPropertyName("min_gen")] public String MinGen { get; set; }
-    [JsonPropertyName("max_gen")] public String MaxGen { get; set; }
+    [JsonPropertyName("min_gen")] public string MinGen { get; set; }
+    [JsonPropertyName("max_gen")] public string MaxGen { get; set; }
     [JsonPropertyName("count")] public int Count { get; set; }
     [JsonPropertyName("legal")] public bool Legality { get; set; }
 }

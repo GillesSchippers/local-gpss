@@ -3,10 +3,11 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
-./idea/
-*.DotSettings.user
+.idea/
 flagbrew2_*.json
 *gpss.db
 .idea/
 output/
 local-gpss.json
+.vs/
+*.user
