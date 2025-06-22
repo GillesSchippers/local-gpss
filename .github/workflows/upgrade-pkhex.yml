@@ -9,6 +9,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    strategy:
+      fail-fast: true
 
     steps:
       - name: Checkout repository
