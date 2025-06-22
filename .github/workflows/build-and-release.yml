@@ -4,6 +4,13 @@ on:
   push:
     tags:
       - "v*"  # Run only when a tag is pushed (e.g., v1.0.3)
+    branches:
+      - "master"
+    paths:
+      - "**.cs"
+      - "**.dll"
+      - "**.csproj"
+      - "**.sln"
   workflow_dispatch:  # Allow manual triggering
 
 jobs:
