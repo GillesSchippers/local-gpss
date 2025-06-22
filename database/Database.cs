@@ -14,7 +14,7 @@ public class Database
     private Database()
     {
         var config = Helpers.Init() ?? Helpers.FirstTime();
-        _connectionString = $"Server={config.MariaDbHost};Port={config.MariaDbPort};User={config.MariaDbUser};Password={config.MariaDbPassword};Database={config.MariaDbDatabase};";
+        _connectionString = $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};";
         using var connection = new MySqlConnection(_connectionString);
         connection.Open();
         Migrate(connection);
