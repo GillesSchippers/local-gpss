@@ -41,7 +41,7 @@ namespace Datastore
 
             return returnId ? reader.GetInt64(0) : reader.GetString(0);
         }
-    
+
         public long InsertPokemon(string base64, bool legal, string code, string generation)
         {
             var base64Hash = ComputeSha256Hash(base64);
@@ -64,13 +64,13 @@ namespace Datastore
             return Convert.ToInt32(cmd.ExecuteScalar());
         }
         #endregion
-    
+
         #region Bundle Functions
 
         public string? CheckIfBundleExists(List<long> pokemonIds)
         {
             var valuesStr = string.Join(" UNION ALL ", pokemonIds.Select(id => $"SELECT {id} AS pokemon_id"));
-        
+
             using var connection = new MySqlConnection(_connectionString);
             connection.Open();
             using var cmd = connection.CreateCommand();
@@ -91,7 +91,7 @@ namespace Datastore
                                    LIMIT 1
                                """;
             var reader = cmd.ExecuteReader();
-        
+
             if (reader.Read())
             {
                 return reader.IsDBNull(0) ? null : reader.GetString(0);
@@ -99,7 +99,7 @@ namespace Datastore
             return null;
         }
 
-    
+
         public void InsertBundle(bool legal, string code, string minGen, string maxGen, List<long> ids)
         {
             using var connection = new MySqlConnection(_connectionString);
@@ -113,9 +113,9 @@ namespace Datastore
             cmd.Parameters.AddWithValue("@legal", legal);
             cmd.Parameters.AddWithValue("@min_gen", minGen);
             cmd.Parameters.AddWithValue("@max_gen", maxGen);
-        
+
             var bundleId = Convert.ToInt64(cmd.ExecuteScalar());
-        
+
             // Now to loop through and do a mass insert
             cmd.Parameters.Clear();
 
@@ -131,13 +131,13 @@ namespace Datastore
                 {
                     cmd.CommandText += ";";
                 }
-            
+
             }
-        
+
             cmd.ExecuteNonQuery();
         }
         #endregion
-    
+
         #region Generic Functions
         public bool CodeExists(string table, string code)
         {
@@ -163,9 +163,9 @@ namespace Datastore
                 cmd.CommandText = "UPDATE pokemon SET download_count = download_count + 1 WHERE id in (SELECT pokemon_id from bundle_pokemon where bundle_id = (select id from bundle where download_code = @code))";
                 cmd.ExecuteNonQuery();
             }
-        
+
         }
-    
+
         public int Count(string table, Search? search = null)
         {
             using var connection = new MySqlConnection(_connectionString);
@@ -204,7 +204,9 @@ namespace Datastore
                 if (table == "pokemon")
                 {
                     items.Add((T)Activator.CreateInstance(typeof(T), reader));
-                } else {
+                }
+                else
+                {
                     var dc = reader.GetString(reader.GetOrdinal("download_code"));
                     if (currentDc == "")
                     {
@@ -221,7 +223,7 @@ namespace Datastore
                         buffer3.Clear();
                         currentDc = dc;
                     }
-                
+
                     buffer1.Add(new GpssBundlePokemon()
                     {
                         Generation = reader.GetString(reader.GetOrdinal("pg")),
@@ -239,7 +241,7 @@ namespace Datastore
                     }
                 }
             }
-        
+
             if (table == "bundle" && buffer1.Count > 0)
             {
                 items.Add((T)Activator.CreateInstance(typeof(T), new List<GpssBundlePokemon>(buffer1), new List<string>(buffer2), buffer3));
@@ -298,6 +300,7 @@ namespace Datastore
         {
             using var cmd = connection.CreateCommand();
 
+            // 1. Create tables if they do not exist
             cmd.CommandText =
                 """
                 CREATE TABLE IF NOT EXISTS pokemon (
@@ -339,6 +342,38 @@ namespace Datastore
                 );
                 """;
             cmd.ExecuteNonQuery();
+
+            // 2. Add missing columns to pokemon table
+            cmd.CommandText = "ALTER TABLE pokemon ADD COLUMN IF NOT EXISTS base_64_hash CHAR(64) NOT NULL DEFAULT '';";
+            cmd.ExecuteNonQuery();
+
+            // 3. Add unique key on base_64_hash if missing
+            cmd.CommandText = "ALTER TABLE pokemon ADD UNIQUE KEY IF NOT EXISTS uq_base64_hash (base_64_hash);";
+            try { cmd.ExecuteNonQuery(); } catch { /* Ignore if already exists */ }
+
+            // 4. Backfill base_64_hash for existing rows
+            using var selectCmd = connection.CreateCommand();
+            selectCmd.CommandText = "SELECT id, base_64 FROM pokemon WHERE base_64_hash IS NULL OR base_64_hash = ''";
+            using var reader = selectCmd.ExecuteReader();
+
+            var updates = new List<(long id, string hash)>();
+            while (reader.Read())
+            {
+                var id = reader.GetInt64(0);
+                var base64 = reader.GetString(1);
+                var hash = ComputeSha256Hash(base64);
+                updates.Add((id, hash));
+            }
+            reader.Close();
+
+            foreach (var (id, hash) in updates)
+            {
+                using var updateCmd = connection.CreateCommand();
+                updateCmd.CommandText = "UPDATE pokemon SET base_64_hash = @hash WHERE id = @id";
+                updateCmd.Parameters.AddWithValue("@hash", hash);
+                updateCmd.Parameters.AddWithValue("@id", id);
+                updateCmd.ExecuteNonQuery();
+            }
         }
     }
 }
