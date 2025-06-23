@@ -1,3 +1,5 @@
+using Datastore;
+using Microsoft.EntityFrameworkCore;
 using Utils;
 
 if (Helpers.IsRunningAsAdminOrRoot())
@@ -20,6 +22,15 @@ var builder = WebApplication.CreateBuilder(args);
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddScoped<Database>();
+
+var config = Helpers.Init() ?? Helpers.FirstTime();
+
+builder.Services.AddDbContext<GpssDbContext>(options =>options.UseMySql(
+        $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};",
+        ServerVersion.AutoDetect($"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};")
+    )
+);
 
 var app = builder.Build();
 app.UseRouting();
@@ -31,9 +42,6 @@ if (app.Environment.IsDevelopment())
     app.UseDeveloperExceptionPage();
     app.MapOpenApi();
 };
-
-// This ensures that stuff like the ribbons database is initialized
-var config = Helpers.Init() ?? Helpers.FirstTime();
 
 // check if the config IP is in the assignable IPs.
 

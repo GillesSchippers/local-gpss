@@ -158,26 +158,15 @@ namespace Utils
             return search;
         }
 
-
-        public static string GenerateDownloadCode(string table, int length = 10)
+        public static async Task<string> GenerateDownloadCodeAsync(Database db, string table, int length = 10)
         {
-            string code = "";
-            while (true)
+            string code;
+            do
             {
+                code = "";
                 for (int i = 0; i < length; i++)
                     code = String.Concat(code, rand.Next(10).ToString());
-
-
-                // Now check to see if the code is in the database already and break if it isn't
-
-                if (Database.Instance!.CodeExists(table, code))
-                {
-                    continue;
-                }
-
-                break;
-            }
-
+            } while (await db.CodeExistsAsync(table, code));
             return code;
         }
 
