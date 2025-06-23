@@ -1,36 +1,37 @@
-using local_gpss.utils;
+using Utils;
 using Microsoft.AspNetCore.Mvc;
 
-namespace local_gpss.Controllers;
-
-[ApiController]
-[Route("/api/v2/pksm")]
-public class LegalityController : ControllerBase
+namespace Controllers
 {
-    [HttpPost("legality")]
-    public IActionResult Check([FromForm] IFormFile pkmn, [FromHeader] string generation)
+    [ApiController]
+    [Route("/api/v2/pksm")]
+    public class LegalityController : ControllerBase
     {
-        var result = Pkhex.LegalityCheck(pkmn, Helpers.EntityContextFromString(generation));
-
-        if (Helpers.DoesPropertyExist(result, "error"))
+        [HttpPost("legality")]
+        public IActionResult Check([FromForm] IFormFile pkmn, [FromHeader] string generation)
         {
-            return BadRequest(result);
-        }
-        
-        return Ok(result);
-    }
+            var result = Pkhex.LegalityCheck(pkmn, Helpers.EntityContextFromString(generation));
 
-    [HttpPost("legalize")]
-    public IActionResult Legalize([FromForm] IFormFile pkmn, [FromHeader] string generation, [FromHeader] string version)
-    {
-        var result = Pkhex.Legalize(pkmn, Helpers.EntityContextFromString(generation),
-            Helpers.GameVersionFromString(version));
-        
-        if (Helpers.DoesPropertyExist(result, "error"))
-        {
-            return BadRequest(result);
+            if (Helpers.DoesPropertyExist(result, "error"))
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
         }
-        
-        return Ok(result);
+
+        [HttpPost("legalize")]
+        public IActionResult Legalize([FromForm] IFormFile pkmn, [FromHeader] string generation, [FromHeader] string version)
+        {
+            var result = Pkhex.Legalize(pkmn, Helpers.EntityContextFromString(generation),
+                Helpers.GameVersionFromString(version));
+
+            if (Helpers.DoesPropertyExist(result, "error"))
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
+        }
     }
 }

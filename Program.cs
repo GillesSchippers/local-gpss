@@ -1,4 +1,4 @@
-using local_gpss.utils;
+using Utils;
 
 if (Helpers.IsRunningAsAdminOrRoot())
 {
