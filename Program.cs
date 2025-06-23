@@ -48,7 +48,7 @@ if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
     app.MapOpenApi();
-};
+}
 
 // check if the config IP is in the assignable IPs.
 
