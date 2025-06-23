@@ -26,9 +26,10 @@ builder.Services.AddScoped<Database>();
 
 var config = Helpers.Init() ?? Helpers.FirstTime();
 
-builder.Services.AddDbContext<GpssDbContext>(options =>options.UseMySql(
-        $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};",
-        ServerVersion.AutoDetect($"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};")
+var connectionString = $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};";
+builder.Services.AddDbContext<GpssDbContext>(options => options.UseMySql(
+        connectionString,
+        ServerVersion.AutoDetect(connectionString)
     )
 );
 
