@@ -11,8 +11,13 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <Content Remove="local-gpss.json" />
+    </ItemGroup>
+
+    <ItemGroup>
         <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.6" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.17" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.17" />
 		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
     </ItemGroup>
 
@@ -28,6 +33,12 @@
     <ItemGroup>
       <Content Include=".github\workflows\build-and-release.yml" />
       <Content Include=".github\workflows\upgrade-pkhex.yml" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Include="local-gpss.json">
+        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
     <ItemGroup>
