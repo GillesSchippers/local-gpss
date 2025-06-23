@@ -58,6 +58,6 @@ namespace Models
         public bool LegalOnly { get; set; } = false;
         public bool SortDirection { get; set; } = false;
         public string SortField { get; set; } = "upload_datetime";
-        public string? DownloadCode { get; set; } = null; // <-- Add this line
+        public string? DownloadCode { get; set; } = null;
     }
 }
