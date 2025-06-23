@@ -107,7 +107,7 @@ public class Database
         cmd.Parameters.AddWithValue("@min_gen", minGen);
         cmd.Parameters.AddWithValue("@max_gen", maxGen);
         
-        var bundleId = (long)cmd.ExecuteScalar();
+        var bundleId = Convert.ToInt64(cmd.ExecuteScalar());
         
         // Now to loop through and do a mass insert
         cmd.Parameters.Clear();
