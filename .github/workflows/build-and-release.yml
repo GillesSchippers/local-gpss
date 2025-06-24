@@ -68,10 +68,6 @@ jobs:
         continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
         run: dotnet workload restore
 
-      - name: Restore NuGet dependencies for GPSS
-        continue-on-error: ${{ matrix.project == 'client' }}
-        run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
-
       - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
         shell: bash
         continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
