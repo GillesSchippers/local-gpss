@@ -71,7 +71,6 @@ jobs:
           # Remove PKHeX directory
           Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX
     
-      # Temporary step to ensure all workloads are available
       - name: Restore .NET workloads
         run: dotnet workload restore
 
