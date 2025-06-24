@@ -1,20 +1,14 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using Models;
 using Utils;
-using PKHeX.Core;
-using System.Linq;
 
 namespace Datastore
 {
-    public class GpssDbContext : DbContext
+    public class GpssDbContext(DbContextOptions<GpssDbContext> options) : DbContext(options)
     {
         public DbSet<Pokemon> Pokemons { get; set; }
         public DbSet<Bundle> Bundles { get; set; }
         public DbSet<BundlePokemon> BundlePokemons { get; set; }
-
-        public GpssDbContext(DbContextOptions<GpssDbContext> options) : base(options) { }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -44,22 +38,15 @@ namespace Datastore
         }
     }
 
-    public class Database
+    public class Database(GpssDbContext db)
     {
-        private readonly GpssDbContext _db;
-
-        public Database(GpssDbContext db)
-        {
-            _db = db;
-        }
-
         public static Database? Instance { get; } = new(new GpssDbContext(new DbContextOptions<GpssDbContext>()));
 
         #region Pokemon Functions
         public async Task<string?> CheckIfPokemonExistsAsync(string base64, bool returnId = false) // UNUSED
         {
-            var base64Hash = ComputeSha256Hash(base64);
-            var pokemon = await _db.Pokemons
+            var base64Hash = Helpers.ComputeSha256Hash(base64);
+            var pokemon = await db.Pokemons
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Base64Hash == base64Hash);
 
@@ -71,7 +58,7 @@ namespace Datastore
 
         public async Task<long> InsertPokemonAsync(string base64, bool legal, string code, string generation)
         {
-            var base64Hash = ComputeSha256Hash(base64);
+            var base64Hash = Helpers.ComputeSha256Hash(base64);
 
             var pokemon = new Pokemon
             {
@@ -84,14 +71,14 @@ namespace Datastore
                 Base64Hash = base64Hash
             };
 
-            _db.Pokemons.Add(pokemon);
-            await _db.SaveChangesAsync();
+            db.Pokemons.Add(pokemon);
+            await db.SaveChangesAsync();
             return pokemon.Id;
         }
 
         public async Task<List<GpssPokemon>> ListPokemonsAsync(int page = 1, int pageSize = 30, Search? search = null)
         {
-            var query = _db.Pokemons.AsNoTracking();
+            var query = db.Pokemons.AsNoTracking();
 
             // Filtering
             if (search.HasValue)
@@ -131,19 +118,19 @@ namespace Datastore
             var pokemons = await query.ToListAsync();
 
             // Map to GpssPokemon DTO
-            return pokemons.Select(p => new GpssPokemon
+            return [.. pokemons.Select(p => new GpssPokemon
             {
                 Legal = p.Legal,
                 Base64 = p.Base64,
                 DownloadCode = p.DownloadCode,
                 Generation = p.Generation
-            }).ToList();
+            })];
         }
 
         public async Task<long?> GetPokemonIdAsync(string base64)
         {
-            var base64Hash = ComputeSha256Hash(base64);
-            var pokemon = await _db.Pokemons
+            var base64Hash = Helpers.ComputeSha256Hash(base64);
+            var pokemon = await db.Pokemons
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Base64Hash == base64Hash);
 
@@ -152,8 +139,8 @@ namespace Datastore
 
         public async Task<string?> GetPokemonDownloadCodeAsync(string base64)
         {
-            var base64Hash = ComputeSha256Hash(base64);
-            var pokemon = await _db.Pokemons
+            var base64Hash = Helpers.ComputeSha256Hash(base64);
+            var pokemon = await db.Pokemons
                 .AsNoTracking()
                 .FirstOrDefaultAsync(p => p.Base64Hash == base64Hash);
 
@@ -166,7 +153,7 @@ namespace Datastore
         public async Task<string?> CheckIfBundleExistsAsync(List<long> pokemonIds)
         {
             // Find bundles that contain exactly the same set of pokemonIds
-            var bundleIds = await _db.BundlePokemons
+            var bundleIds = await db.BundlePokemons
                 .Where(bp => pokemonIds.Contains(bp.PokemonId))
                 .GroupBy(bp => bp.BundleId)
                 .Where(g => g.Count() == pokemonIds.Count)
@@ -175,14 +162,14 @@ namespace Datastore
 
             foreach (var bundleId in bundleIds)
             {
-                var bundlePokemonIds = await _db.BundlePokemons
+                var bundlePokemonIds = await db.BundlePokemons
                     .Where(bp => bp.BundleId == bundleId)
                     .Select(bp => bp.PokemonId)
                     .ToListAsync();
 
                 if (bundlePokemonIds.Count == pokemonIds.Count && !bundlePokemonIds.Except(pokemonIds).Any())
                 {
-                    var bundle = await _db.Bundles.FindAsync(bundleId);
+                    var bundle = await db.Bundles.FindAsync(bundleId);
                     return bundle?.DownloadCode;
                 }
             }
@@ -199,15 +186,15 @@ namespace Datastore
                 Legal = legal,
                 MinGen = minGen,
                 MaxGen = maxGen,
-                BundlePokemons = ids.Select(id => new BundlePokemon { PokemonId = id }).ToList()
+                BundlePokemons = [.. ids.Select(id => new BundlePokemon { PokemonId = id })]
             };
-            _db.Bundles.Add(bundle);
-            await _db.SaveChangesAsync();
+            db.Bundles.Add(bundle);
+            await db.SaveChangesAsync();
         }
 
         public async Task<List<GpssBundle>> ListBundlesAsync(int page = 1, int pageSize = 30, Search? search = null)
         {
-            var query = _db.Bundles
+            var query = db.Bundles
                 .Include(b => b.BundlePokemons)
                     .ThenInclude(bp => bp.Pokemon)
                 .AsNoTracking();
@@ -250,7 +237,7 @@ namespace Datastore
             var bundles = await query.ToListAsync();
 
             // Map to GpssBundle DTO
-            return bundles.Select(b =>
+            return [.. bundles.Select(b =>
             {
                 var pokemons = b.BundlePokemons.Select(bp => new GpssBundlePokemon
                 {
@@ -271,7 +258,7 @@ namespace Datastore
                 };
 
                 return new GpssBundle(pokemons, downloadCodes, data);
-            }).ToList();
+            })];
         }
         #endregion
 
@@ -280,8 +267,8 @@ namespace Datastore
         {
             return table switch
             {
-                "pokemon" => await _db.Pokemons.AnyAsync(p => p.DownloadCode == code),
-                "bundle" => await _db.Bundles.AnyAsync(b => b.DownloadCode == code),
+                "pokemon" => await db.Pokemons.AnyAsync(p => p.DownloadCode == code),
+                "bundle" => await db.Bundles.AnyAsync(b => b.DownloadCode == code),
                 _ => false
             };
         }
@@ -290,27 +277,27 @@ namespace Datastore
         {
             if (table == "pokemon")
             {
-                var pokemon = await _db.Pokemons.FirstOrDefaultAsync(p => p.DownloadCode == code);
+                var pokemon = await db.Pokemons.FirstOrDefaultAsync(p => p.DownloadCode == code);
                 if (pokemon != null)
                 {
                     pokemon.DownloadCount++;
-                    await _db.SaveChangesAsync();
+                    await db.SaveChangesAsync();
                 }
             }
             else if (table == "bundle")
             {
-                var bundle = await _db.Bundles.FirstOrDefaultAsync(b => b.DownloadCode == code);
+                var bundle = await db.Bundles.FirstOrDefaultAsync(b => b.DownloadCode == code);
                 if (bundle != null)
                 {
                     bundle.DownloadCount++;
-                    var bundlePokemons = await _db.BundlePokemons.Where(bp => bp.BundleId == bundle.Id).ToListAsync();
+                    var bundlePokemons = await db.BundlePokemons.Where(bp => bp.BundleId == bundle.Id).ToListAsync();
                     foreach (var bp in bundlePokemons)
                     {
-                        var pokemon = await _db.Pokemons.FindAsync(bp.PokemonId);
+                        var pokemon = await db.Pokemons.FindAsync(bp.PokemonId);
                         if (pokemon != null)
                             pokemon.DownloadCount++;
                     }
-                    await _db.SaveChangesAsync();
+                    await db.SaveChangesAsync();
                 }
             }
         }
@@ -319,17 +306,11 @@ namespace Datastore
         {
             return table switch
             {
-                "pokemon" => await _db.Pokemons.CountAsync(),
-                "bundle" => await _db.Bundles.CountAsync(),
+                "pokemon" => await db.Pokemons.CountAsync(),
+                "bundle" => await db.Bundles.CountAsync(),
                 _ => 0
             };
         }
         #endregion
-
-        private static string ComputeSha256Hash(string rawData)
-        {
-            var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawData));
-            return Convert.ToHexString(bytes).ToLowerInvariant();
-        }
     }
 }

@@ -3,22 +3,15 @@ using Datastore;
 using Models;
 using Utils;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using PKHeX.Core;
 
 namespace Controllers
 {
     [ApiController]
     [Route("/api/v2/gpss")]
-    public class GpssController : ControllerBase
+    public class GpssController(Database database) : ControllerBase
     {
         private readonly string[] _supportedEntities = ["pokemon", "bundles", "bundle"];
-        private readonly Database _database;
-
-        public GpssController(Database database)
-        {
-            _database = database;
-        }
 
         [HttpPost("search/{entityType}")]
         public async Task<IActionResult> List([FromRoute] string entityType, [FromBody] JsonElement? searchBody, [FromQuery] int page = 1,
@@ -34,13 +27,13 @@ namespace Controllers
             object items;
             if (entityType == "pokemon")
             {
-                count = await _database.CountAsync("pokemon");
-                items = await _database.ListPokemonsAsync(page, amount, search);
+                count = await database.CountAsync("pokemon");
+                items = await database.ListPokemonsAsync(page, amount, search);
             }
             else
             {
-                count = await _database.CountAsync("bundle");
-                items = await _database.ListBundlesAsync(page, amount, search);
+                count = await database.CountAsync("bundle");
+                items = await database.ListBundlesAsync(page, amount, search);
             }
 
             var pages = count != 0 ? Math.Ceiling((double)count / amount) : 1;
@@ -77,17 +70,17 @@ namespace Controllers
                 if (payload.pokemon == null)
                     return BadRequest(new { error = "not a pokemon" });
 
-                long? id = await _database.GetPokemonIdAsync(payload.base64);
+                long? id = await database.GetPokemonIdAsync(payload.base64);
                 if (id.HasValue)
                 {
                     // Fetch the download code for the existing Pokémon
-                    var code = await _database.GetPokemonDownloadCodeAsync(payload.base64);
+                    var code = await database.GetPokemonDownloadCodeAsync(payload.base64);
                     return Ok(new { code });
                 }
 
                 var legality = new LegalityAnalysis(payload.pokemon);
-                var newCode = await Helpers.GenerateDownloadCodeAsync(_database, "pokemon");
-                await _database.InsertPokemonAsync(payload.base64, legality.Valid, newCode, generation!);
+                var newCode = await Helpers.GenerateDownloadCodeAsync(database, "pokemon");
+                await database.InsertPokemonAsync(payload.base64, legality.Valid, newCode, generation!);
                 return Ok(new { code = newCode });
             }
 
@@ -118,15 +111,15 @@ namespace Controllers
                 if (!maxGen.HasValue || (gen != EntityContext.None ? gen : payload.pokemon.Context) > maxGen.Value)
                     maxGen = gen != EntityContext.None ? gen : payload.pokemon.Context;
 
-                long? id = await _database.GetPokemonIdAsync(payload.base64);
+                long? id = await database.GetPokemonIdAsync(payload.base64);
 
                 var legality = new LegalityAnalysis(payload.pokemon);
                 if (!legality.Valid) bundleLegal = false;
 
                 if (!id.HasValue)
                 {
-                    var code = await Helpers.GenerateDownloadCodeAsync(_database, "pokemon");
-                    id = await _database.InsertPokemonAsync(payload.base64, legality.Valid, code, generations[i]);
+                    var code = await Helpers.GenerateDownloadCodeAsync(database, "pokemon");
+                    id = await database.InsertPokemonAsync(payload.base64, legality.Valid, code, generations[i]);
                     ids.Add(id.Value);
                 }
                 else
@@ -135,11 +128,11 @@ namespace Controllers
                 }
             }
 
-            var bundleCode = await _database.CheckIfBundleExistsAsync(ids);
+            var bundleCode = await database.CheckIfBundleExistsAsync(ids);
             if (bundleCode != null) return Ok(new { code = bundleCode });
 
-            bundleCode = await Helpers.GenerateDownloadCodeAsync(_database, "bundle");
-            await _database.InsertBundleAsync(bundleLegal, bundleCode, ((int)minGen!.Value).ToString(), ((int)maxGen!.Value).ToString(), ids);
+            bundleCode = await Helpers.GenerateDownloadCodeAsync(database, "bundle");
+            await database.InsertBundleAsync(bundleLegal, bundleCode, ((int)minGen!.Value).ToString(), ((int)maxGen!.Value).ToString(), ids);
 
             return Ok(new { code = bundleCode });
         }
@@ -153,7 +146,7 @@ namespace Controllers
             if (!_supportedEntities.Contains(entityType))
                 return BadRequest(new { message = "Invalid entity type." });
 
-            await _database.IncrementDownloadAsync(
+            await database.IncrementDownloadAsync(
                 entityType == "bundles" || entityType == "bundle" ? "bundle" : "pokemon",
                 code);
 
@@ -162,14 +155,14 @@ namespace Controllers
 
             if (entityType == "pokemon")
             {
-                var pokemon = (await _database.ListPokemonsAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
+                var pokemon = (await database.ListPokemonsAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
                 if (string.IsNullOrEmpty(pokemon.DownloadCode))
                     return NotFound(new { message = "Pokemon not found." });
                 return Ok(pokemon);
             }
             else
             {
-                var bundle = (await _database.ListBundlesAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
+                var bundle = (await database.ListBundlesAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
                 if (string.IsNullOrEmpty(bundle.DownloadCode))
                     return NotFound(new { message = "Bundle not found." });
                 return Ok(bundle);
