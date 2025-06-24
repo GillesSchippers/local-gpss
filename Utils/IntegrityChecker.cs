@@ -22,6 +22,8 @@ namespace Utils
             using var scope = services.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<GpssDbContext>();
 
+            logger.LogInformation("Daily integrity check of pokemon is starting.");
+
             var pokemons = await context.Pokemons.ToListAsync(cancellationToken);
 
             foreach (var p in pokemons)
@@ -109,6 +111,8 @@ namespace Utils
                     logger.LogError(ex, "Error checking Pokemon ID {Id}", p.Id);
                 }
             }
+
+            logger.LogInformation("Daily integrity check of pokemon has finished.");
 
             await context.SaveChangesAsync(cancellationToken);
         }
