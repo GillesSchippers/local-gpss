@@ -1,48 +1,48 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-    <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
-        <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-        <Company>FlagBrew</Company>
-        <Product>Local GPSS</Product>
-        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<Company>FlagBrew</Company>
+		<Product>Local GPSS</Product>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	</PropertyGroup>
 
-    <ItemGroup>
-      <Content Remove="local-gpss.json" />
-    </ItemGroup>
+	<ItemGroup>
+		<Content Remove="local-gpss.json" />
+	</ItemGroup>
 
-    <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.6" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.17" />
-	<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.17" />
-	<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
-    </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.6" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.17" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.17" />
+		<PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.3" />
+	</ItemGroup>
 
-    <ItemGroup>
-        <Reference Include="PKHeX.Core">
-          <HintPath>deps\PKHeX.Core.dll</HintPath>
-        </Reference>
-        <Reference Include="PKHeX.Core.AutoMod">
-            <HintPath>deps\PKHeX.Core.AutoMod.dll</HintPath>
-        </Reference>
-    </ItemGroup>
+	<ItemGroup>
+		<Reference Include="PKHeX.Core">
+			<HintPath>deps\PKHeX.Core.dll</HintPath>
+		</Reference>
+		<Reference Include="PKHeX.Core.AutoMod">
+			<HintPath>deps\PKHeX.Core.AutoMod.dll</HintPath>
+		</Reference>
+	</ItemGroup>
 
-    <ItemGroup>
-      <Content Include=".github\workflows\build-and-release.yml" />
-      <Content Include=".github\workflows\upgrade-pkhex.yml" />
-    </ItemGroup>
+	<ItemGroup>
+		<Content Include=".github\workflows\build-and-release.yml" />
+		<Content Include=".github\workflows\upgrade-pkhex.yml" />
+	</ItemGroup>
 
-    <ItemGroup>
-      <None Include="local-gpss.json">
-        <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-      </None>
-    </ItemGroup>
+	<ItemGroup>
+		<None Include="local-gpss.json">
+			<CopyToOutputDirectory>Never</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
 
-    <ItemGroup>
-        <Content Update="Output\**" CopyToPublishDirectory="Never" />
-    </ItemGroup>
+	<ItemGroup>
+		<Content Update="Output\**" CopyToPublishDirectory="Never" />
+	</ItemGroup>
 
 </Project>

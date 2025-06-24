@@ -52,12 +52,15 @@ namespace Utils
                             logger.LogWarning("Hash mismatch for Pokemon ID {Id}, but PKHeX can parse. Updating hash.", p.Id);
                             p.Base64Hash = computedHash;
 
-                            // Check if generation stayed the same
-                            var parsedGen = pkmn.Context.Generation().ToString();
-                            if (!string.Equals(p.Generation, parsedGen, StringComparison.OrdinalIgnoreCase))
+                            // If we get here, PKHeX can parse the Pokémon. Check generation.
+                            if (pkmn != null)
                             {
-                                logger.LogWarning("Generation mismatch for Pokemon ID {Id}: stored {StoredGen}, parsed {ParsedGen}. Updating stored generation.", p.Id, p.Generation, parsedGen);
-                                p.Generation = parsedGen;
+                                var parsedGen = pkmn.Context.Generation().ToString();
+                                if (!string.Equals(p.Generation, parsedGen, StringComparison.OrdinalIgnoreCase))
+                                {
+                                    logger.LogWarning("Generation mismatch for Pokemon ID {Id}: stored {StoredGen}, parsed {ParsedGen}. Updating stored generation.", p.Id, p.Generation, parsedGen);
+                                    p.Generation = parsedGen;
+                                }
                             }
                             // Continue to legality check below
                         }
