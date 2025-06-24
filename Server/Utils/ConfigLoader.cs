@@ -7,7 +7,7 @@ namespace Utils
     {
         public static Config LoadOrCreateConfig()
         {
-            const string configPath = "./local-gpss.json";
+            const string configPath = "./Config.json";
 
             if (!File.Exists(configPath))
             {

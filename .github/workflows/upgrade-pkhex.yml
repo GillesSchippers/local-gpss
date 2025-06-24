@@ -61,8 +61,8 @@ jobs:
 
       - name: Prepare dlls
         run: |
-          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" ${{ github.workspace }}\deps /Y
-          xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" ${{ github.workspace }}\deps /Y
+          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" ${{ github.workspace }}\Shared\Deps /Y
+          xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" ${{ github.workspace }}\Shared\Deps /Y
 
       - name: Remove other repo directories
         run: |
@@ -71,19 +71,20 @@ jobs:
           # Remove PKHeX directory
           Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX
 
-      - name: Restore NuGet dependencies for local-gpss
-        run: nuget restore ${{ github.workspace }}/local-gpss.sln -NoCache
+      - name: Restore NuGet dependencies for GPSS
+        run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
         
-      - name: Build local-gpss.csproj
+      - name: Build GPSS
         run: |
-          msbuild ${{ github.workspace }}/local-gpss.csproj /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}Server/GPSS Server.csproj" /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}Client/GPSS Client.csproj" /p:Configuration=Release /p:Platform="Any CPU"
         # Bad idea to leave this on?!
         continue-on-error: false
-        id: local-gpss-build
+        id: gpss-build
         
       # If the build was successful, we're good to commit the new DLLs.
       - name: Commit and Push DLLs
-        if: steps.local-gpss-build.outcome == 'success'
+        if: steps.gpss-build.outcome == 'success'
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"

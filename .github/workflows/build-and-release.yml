@@ -3,7 +3,7 @@ name: Build and Release
 on:
   push:
     tags:
-      - "v*"  # Run only when a tag is pushed (e.g., v1.0.3)
+      - "v*"
     branches:
       - "master"
     paths:
@@ -11,11 +11,11 @@ on:
       - "**.dll"
       - "**.csproj"
       - "**.sln"
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build for ${{ matrix.os }} (${{ matrix.arch }})
+    name: Build ${{ matrix.project }} for ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -33,6 +33,7 @@ jobs:
           - os: windows-latest
             arch: win-x64
             output: win64
+        project: [server, client]
 
     steps:
       - name: Checkout repository
@@ -43,33 +44,48 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
-      - name: Publish ${{ matrix.arch }}
+      - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
         shell: bash
         run: |
-          dotnet publish -c Release -o ./output/${{ matrix.output }} --self-contained true \
+          PROJECT_PATH=""
+          if [ "${{ matrix.project }}" = "server" ]; then
+            PROJECT_PATH="Server/GPSS Server.csproj"
+            EXECUTABLE_NAME="GPSS Server"
+          else
+            PROJECT_PATH="Client/GPSS Client.csproj"
+            EXECUTABLE_NAME="local-gpss-client"
+          fi
+          dotnet publish "$PROJECT_PATH" -c Release -o ./output/${{ matrix.output }}-${{ matrix.project }} --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -r ${{ matrix.arch }}
 
       - name: Set execute permissions (Linux/macOS)
         if: runner.os != 'Windows'
-        run: chmod +x ./output/${{ matrix.output }}/local-gpss
+        run: |
+          EXECUTABLE="GPSS Server"
+          if [ "${{ matrix.project }}" = "client" ]; then
+            EXECUTABLE="GPSS Client"
+          fi
+          chmod +x "./output/${{ matrix.output }}-${{ matrix.project }}/${EXECUTABLE}"
 
       - name: Create ZIP archive
         shell: bash
         run: |
           cd output
+          ZIPNAME="../${{ matrix.output }}-${{ matrix.project }}.zip"
+          DIRNAME="${{ matrix.output }}-${{ matrix.project }}"
           if [ "${{ runner.os }}" = "Windows" ]; then
-            7z a -tzip ../${{ matrix.output }}.zip ${{ matrix.output }}/*
+            7z a -tzip "$ZIPNAME" "$DIRNAME"/*
           else
-            zip -r ../${{ matrix.output }}.zip ${{ matrix.output }}/*
+            zip -r "$ZIPNAME" "$DIRNAME"/*
           fi
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.output }}
-          path: ${{ matrix.output }}.zip
+          name: ${{ matrix.output }}-${{ matrix.project }}
+          path: ${{ matrix.output }}-${{ matrix.project }}.zip
           retention-days: 1
 
   release:
@@ -82,7 +98,7 @@ jobs:
       - name: Download all build artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts # In the future if they add the ability to skip decompressing, I'll remove the zip step above
+          path: artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
