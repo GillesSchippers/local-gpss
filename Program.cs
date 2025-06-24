@@ -26,7 +26,6 @@ internal class Program
             )
         );
 
-        builder.Services.AddOpenApi();
         builder.Services.AddControllers();
         builder.Services.AddScoped<Database>();
         builder.Services.AddHostedService<IntegrityChecker>();
@@ -45,11 +44,6 @@ internal class Program
         if (app.Environment.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
-            app.MapOpenApi();
-        }
-        else
-        {
-            app.MapOpenApi().CacheOutput();
         }
 
         try
