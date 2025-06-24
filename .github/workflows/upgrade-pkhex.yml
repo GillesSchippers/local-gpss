@@ -70,6 +70,10 @@ jobs:
           Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX-Plugins
           # Remove PKHeX directory
           Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX
+    
+      # Temporary step to ensure all workloads are available
+      - name: Restore .NET workloads
+        run: dotnet workload restore
 
       - name: Restore NuGet dependencies for GPSS
         run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
