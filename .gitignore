@@ -9,6 +9,9 @@ flagbrew2_*.json
 .idea/
 output/
 local-gpss.json
+Config.json
 .vs/
 *.user
-/Properties/launchSettings.json
+Properties/
+launchSettings.json
+/Client/Properties/launchSettings.json
