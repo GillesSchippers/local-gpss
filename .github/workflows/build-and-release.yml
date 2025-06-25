@@ -27,25 +27,13 @@ jobs:
             output: linux64
             project: server
           - os: ubuntu-latest
-            arch: linux-x64
-            output: linux64
-            project: client
-          - os: ubuntu-latest
             arch: linux-arm64
             output: linux-arm64
             project: server
-          - os: ubuntu-latest
-            arch: linux-arm64
-            output: linux-arm64
-            project: client
           - os: macos-latest
             arch: osx-x64
             output: osx64
             project: server
-          - os: macos-latest
-            arch: osx-x64
-            output: osx64
-            project: client
           - os: windows-latest
             arch: win-x64
             output: win64
@@ -64,13 +52,27 @@ jobs:
         with:
           dotnet-version: "9.0.x"
 
+      - name: Install NuGet
+        if: runner.os == 'Windows'
+        run: |
+          nuget update -self
+          nuget install nuget.commandline -OutputDirectory .nuget -ExcludeVersion
+          echo "$(pwd)/.nuget/nuget.commandline/tools" >> $GITHUB_PATH
+
       - name: Restore .NET workloads
-        continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
-        run: dotnet workload restore
+        run: |
+          dotnet workload restore
+
+      - name: Add msbuild to PATH
+        if: runner.os == 'Windows'
+        uses: microsoft/setup-msbuild@v2
+        
+      - name: Restore NuGet dependencies for GPSS
+        if: runner.os == 'Windows'
+        run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
 
       - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
         shell: bash
-        continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
         run: |
           PROJECT_PATH=""
           if [ "${{ matrix.project }}" = "server" ]; then
@@ -87,7 +89,6 @@ jobs:
 
       - name: Set execute permissions (Linux/macOS)
         if: runner.os != 'Windows'
-        continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
         run: |
           EXECUTABLE="GPSS Server"
           if [ "${{ matrix.project }}" = "client" ]; then
@@ -97,7 +98,6 @@ jobs:
 
       - name: Create ZIP archive
         shell: bash
-        continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
         run: |
           cd output
           ZIPNAME="../${{ matrix.output }}-${{ matrix.project }}.zip"
@@ -110,7 +110,6 @@ jobs:
 
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
-        continue-on-error: ${{ matrix.project == 'client' }}  # TEMPORARY
         with:
           name: ${{ matrix.output }}-${{ matrix.project }}
           path: ${{ matrix.output }}-${{ matrix.project }}.zip
