@@ -1,5 +1,5 @@
-using System.Text.Json;
 using Models;
+using System.Text.Json;
 
 namespace Utils
 {

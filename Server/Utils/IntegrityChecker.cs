@@ -1,6 +1,6 @@
 using Datastore;
-using PKHeX.Core;
 using Microsoft.EntityFrameworkCore;
+using PKHeX.Core;
 
 namespace Utils
 {

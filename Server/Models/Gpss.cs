@@ -1,5 +1,5 @@
-using System.Text.Json.Serialization;
 using MySqlConnector;
+using System.Text.Json.Serialization;
 
 namespace Models
 {

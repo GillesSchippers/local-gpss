@@ -1,5 +1,5 @@
-using Utils;
 using Microsoft.AspNetCore.Mvc;
+using Utils;
 
 namespace Controllers
 {

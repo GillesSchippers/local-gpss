@@ -1,8 +1,6 @@
-﻿using Microsoft.Extensions.Logging;
-using GPSS_Client.Config;
+﻿using CommunityToolkit.Maui;
 using GPSS_Client.Services;
-using CommunityToolkit.Maui;
-
+using Microsoft.Extensions.Logging;
 
 namespace GPSS_Client
 {
@@ -12,12 +10,14 @@ namespace GPSS_Client
         {
             var builder = MauiApp.CreateBuilder();
 
-            // Load config and register as singleton
-            var config = ConfigService.Load();
-            builder.Services.AddSingleton(config);
+            builder.Services.AddSingleton(ConfigService.Load());
+            builder.Services.AddSingleton<ConfigService>();
+            builder.Services.AddSingleton<PkhexService>();
+            builder.Services.AddSingleton<ApiService>();
 
-            // Register ApiService as singleton, using config
-            //builder.Services.AddSingleton<ApiService>();
+            builder.Services.AddTransient<AppShell>();
+            builder.Services.AddTransient<MainPage>();
+            builder.Services.AddTransient<ConfigPage>();
 
             builder
                 .UseMauiApp<App>()
@@ -29,7 +29,7 @@ namespace GPSS_Client
                 });
 
 #if DEBUG
-    		builder.Logging.AddDebug();
+            builder.Logging.AddDebug();
 #endif
 
             return builder.Build();

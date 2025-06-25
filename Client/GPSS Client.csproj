@@ -70,9 +70,6 @@
 		<Reference Include="PKHeX.Core">
 			<HintPath>..\Shared\Deps\PKHeX.Core.dll</HintPath>
 		</Reference>
-		<Reference Include="PKHeX.Core.AutoMod">
-			<HintPath>..\Shared\Deps\PKHeX.Core.AutoMod.dll</HintPath>
-		</Reference>
 	</ItemGroup>
 
 	<ItemGroup>

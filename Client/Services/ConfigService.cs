@@ -1,8 +1,9 @@
+using GPSS_Client.Config;
 using System.Text.Json;
 
-namespace GPSS_Client.Config
+namespace GPSS_Client.Services
 {
-    public static class ConfigService
+    public class ConfigService
     {
         private static readonly string ConfigFilePath = "Config.json";
 

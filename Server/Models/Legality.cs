@@ -1,5 +1,5 @@
-using System.Text.Json.Serialization;
 using PKHeX.Core;
+using System.Text.Json.Serialization;
 
 namespace Models
 {

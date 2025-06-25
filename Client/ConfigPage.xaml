@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+	x:Class="GPSS_Client.ConfigPage"
+	xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    BackgroundColor="{DynamicResource PageBackgroundColor}">
+
+	<ScrollView>
+		<StackLayout Padding="20" Spacing="16">
+			<Frame x:Name="ConfigContainer"
+                   BackgroundColor="{DynamicResource CardBackgroundColor}"
+                   CornerRadius="12"
+                   Padding="16"
+                   HasShadow="True">
+				<StackLayout x:Name="DynamicConfigStack" Spacing="12"/>
+			</Frame>
+			<Button Text="Save" Clicked="OnSaveClicked"/>
+		</StackLayout>
+	</ScrollView>
+</ContentPage>

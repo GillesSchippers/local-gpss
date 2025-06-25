@@ -1,9 +1,9 @@
-using System.Text.Json;
 using Datastore;
-using Models;
-using Utils;
 using Microsoft.AspNetCore.Mvc;
+using Models;
 using PKHeX.Core;
+using System.Text.Json;
+using Utils;
 
 namespace Controllers
 {
