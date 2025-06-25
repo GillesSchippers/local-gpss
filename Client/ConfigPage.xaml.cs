@@ -7,13 +7,17 @@ namespace GPSS_Client;
 
 public partial class ConfigPage : ContentPage
 {
+    private readonly ConfigHolder _configHolder;
     private readonly ClientConfig _config;
+    private readonly IServiceProvider _serviceProvider;
     private readonly Dictionary<string, View> _propertyInputs = [];
 
-    public ConfigPage(ClientConfig config)
+    public ConfigPage(ConfigHolder configHolder, IServiceProvider serviceProvider)
     {
         InitializeComponent();
-        _config = config;
+        _configHolder = configHolder;
+        _config = _configHolder.Config;
+        _serviceProvider = serviceProvider;
 
         RenderConfigOptions();
     }
@@ -81,7 +85,14 @@ public partial class ConfigPage : ContentPage
             }
         }
 
-        ConfigService.Save(_config); // Fixed by qualifying with the type name
-        // Optionally: Display a success message or close the page
+        ConfigService.Save(_config);
+
+        // Reload and replace the config in the holder
+        var newConfig = ConfigService.Load();
+        var configHolder = _serviceProvider.GetService<ConfigHolder>();
+        if (configHolder != null)
+            configHolder.Config = newConfig;
+
+        await DisplayAlert("Config", "Configuration saved and applied.", "OK");
     }
 }

@@ -6,7 +6,8 @@ namespace GPSS_Client;
 
 public partial class MainPage : ContentPage
 {
-    private readonly ClientConfig _config;
+    private readonly ConfigHolder _configHolder;
+    private ClientConfig _config;
     private readonly ApiService _api;
 
     private int currentPage = 1;
@@ -26,18 +27,22 @@ public partial class MainPage : ContentPage
         FileTypes = PkFileType
     };
 
-    public string ApiUrl
-    {
-        get => _config.ApiUrl;
-        set => _config.ApiUrl = value;
-    }
-
-    public MainPage(ClientConfig config, ApiService api)
+    public MainPage(ConfigHolder configHolder, ApiService api)
     {
         InitializeComponent();
-        _config = config;
+        _configHolder = configHolder;
+        _config = _configHolder.Config;
         _api = api;
+
+        // Subscribe to config changes
+        _configHolder.ConfigChanged += OnConfigChanged;
+
         _ = SearchAsync();
+    }
+
+    private void OnConfigChanged(object? sender, EventArgs e)
+    {
+        _config = _configHolder.Config;
     }
 
     private async void OnUploadPokemonClicked(object sender, EventArgs e)

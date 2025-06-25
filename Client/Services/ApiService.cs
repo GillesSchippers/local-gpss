@@ -8,21 +8,24 @@ namespace GPSS_Client.Services
 {
     public class ApiService
     {
-        private readonly ClientConfig _config;
+        private readonly ConfigHolder _configHolder;
+        private ClientConfig _config;
         private readonly HttpClient _httpClient;
-        private string _baseUrl;
 
-        public ApiService(ClientConfig config)
+        public ApiService(ConfigHolder configHolder)
         {
-            _config = config;
-            _baseUrl = _config.ApiUrl.TrimEnd('/');
+            _configHolder = configHolder;
+            _config = _configHolder.Config;
             _httpClient = new HttpClient();
             _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("GPSS-Client PKSM/PKHeX");
+
+            // Subscribe to config changes
+            _configHolder.ConfigChanged += OnConfigChanged;
         }
 
-        public void SetBaseUrl(string url)
+        private void OnConfigChanged(object? sender, EventArgs e)
         {
-            _baseUrl = url.TrimEnd('/');
+            _config = _configHolder.Config;
         }
 
         // --- LegalityController ---
@@ -31,7 +34,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/pksm/legality";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/pksm/legality";
                 var content = new MultipartFormDataContent();
                 var fileContent = new StreamContent(pkmnFile);
                 content.Add(fileContent, "pkmn", "pkmn");
@@ -57,7 +60,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/pksm/legalize";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/pksm/legalize";
                 var content = new MultipartFormDataContent();
                 var fileContent = new StreamContent(pkmnFile);
                 content.Add(fileContent, "pkmn", "pkmn");
@@ -86,7 +89,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/gpss/search/{entityType}?page={page}&amount={amount}";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/gpss/search/{entityType}?page={page}&amount={amount}";
                 var json = searchBody != null ? JsonSerializer.Serialize(searchBody) : "{}";
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
@@ -110,7 +113,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/gpss/upload/pokemon";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/gpss/upload/pokemon";
                 var content = new MultipartFormDataContent();
                 var fileContent = new StreamContent(pkmnFile);
                 content.Add(fileContent, "pkmn", "pkmn");
@@ -136,7 +139,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/gpss/upload/bundle";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/gpss/upload/bundle";
                 var content = new MultipartFormDataContent();
                 content.Headers.Add("count", pkmnFiles.Count.ToString());
                 content.Headers.Add("generations", string.Join(",", generations));
@@ -167,7 +170,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/gpss/download/pokemon/{code}?download={download.ToString().ToLower()}";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/gpss/download/pokemon/{code}?download={download.ToString().ToLower()}";
                 Debug.WriteLine($"[Request] GET {url} | Code: {code}, Download: {download}");
 
                 var response = await _httpClient.GetAsync(url);
@@ -188,7 +191,7 @@ namespace GPSS_Client.Services
         {
             try
             {
-                var url = $"{_baseUrl}/api/v2/gpss/download/bundle/{code}?download={download.ToString().ToLower()}";
+                var url = $"{_config.ApiUrl.TrimEnd('/')}/api/v2/gpss/download/bundle/{code}?download={download.ToString().ToLower()}";
                 Debug.WriteLine($"[Request] GET {url} | Code: {code}, Download: {download}");
 
                 var response = await _httpClient.GetAsync(url);
