@@ -79,8 +79,8 @@ jobs:
         
       - name: Build GPSS
         run: |
-          msbuild "${{ github.workspace }}Server/GPSS Server.csproj" /p:Configuration=Release /p:Platform="Any CPU"
-          msbuild "${{ github.workspace }}Client/GPSS Client.csproj" /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}/Server/GPSS Server.csproj" /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}/Client/GPSS Client.csproj" /p:Configuration=Release /p:Platform="Any CPU"
         # Bad idea to leave this on?!
         continue-on-error: false
         id: gpss-build
