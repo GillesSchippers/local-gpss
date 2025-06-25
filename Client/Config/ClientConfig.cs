@@ -7,6 +7,6 @@ namespace GPSS_Client.Config
     {
         [JsonPropertyName("api_url")]
         [DisplayName("API URL")]
-        public string ApiUrl { get; set; } = "http://127.0.0.1:8080";
+        public string ApiUrl { get; set; } = "https://pksm.gustav-serv.net";
     }
 }

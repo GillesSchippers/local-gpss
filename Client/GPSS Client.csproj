@@ -28,7 +28,7 @@
 		<!-- <ApplicationId>com.companyname.gpssclient</ApplicationId> -->
 
 		<!-- Versions -->
-		<ApplicationDisplayVersion>1.2.1</ApplicationDisplayVersion>
+		<ApplicationDisplayVersion>1.2.2</ApplicationDisplayVersion>
 		<ApplicationVersion>1</ApplicationVersion>
 
 		<!-- To develop, package, and publish an app to the Microsoft Store, see: https://aka.ms/MauiTemplateUnpackaged -->
@@ -43,11 +43,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Debug|net9.0-windows10.0.19041.0|AnyCPU'">
-	  <ApplicationDisplayVersion>1.2.1</ApplicationDisplayVersion>
+	  <ApplicationDisplayVersion>1.2.2</ApplicationDisplayVersion>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)|$(TargetFramework)|$(Platform)'=='Release|net9.0-windows10.0.19041.0|AnyCPU'">
-	  <ApplicationDisplayVersion>1.2.1</ApplicationDisplayVersion>
+	  <ApplicationDisplayVersion>1.2.2</ApplicationDisplayVersion>
 	</PropertyGroup>
 
 	<ItemGroup>
