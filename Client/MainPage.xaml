@@ -12,55 +12,76 @@
         <ToolbarItem Text="Upload" Clicked="OnUploadPokemonClicked" Order="Primary" Priority="3" />
     </ContentPage.ToolbarItems>
 
-    <ScrollView>
-        <VerticalStackLayout Spacing="16" Padding="24,36,24,24">
+    <Grid RowDefinitions="*,Auto" Padding="20">
+        <!-- Scrollable Pokémon List -->
+        <Border Grid.Row="0"
+                Stroke="{DynamicResource CardBorderColor}"
+                StrokeThickness="1"
+                Background="{DynamicResource CardBackgroundColor}"
+                StrokeShape="RoundRectangle 12"
+                Padding="4"
+                VerticalOptions="FillAndExpand">
+            <CollectionView x:Name="ResultsView"
+                            SelectionMode="None"
+                            VerticalOptions="FillAndExpand"
+                            HorizontalOptions="FillAndExpand">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate>
+                        <Border
+                            Stroke="{DynamicResource CardBorderColor}"
+                            StrokeThickness="1"
+                            Background="{DynamicResource CardBackgroundColor}"
+                            StrokeShape="RoundRectangle 4"
+                            Padding="4"
+                            Margin="4">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <!-- Info Column -->
+                                <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                    <Label Text="{Binding Nickname}" FontAttributes="Bold" FontSize="18"/>
+                                    <HorizontalStackLayout Spacing="12">
+                                        <Label Text="{Binding Species, StringFormat='Species: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding Level, StringFormat='Lv. {0}'}" FontSize="14"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="12">
+                                        <Label Text="{Binding OT, StringFormat='OT: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding SID, StringFormat='SID: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding TID, StringFormat='TID: {0}'}" FontSize="14"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="12">
+                                        <Label Text="{Binding IsShiny, StringFormat='Shiny: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding Legal, StringFormat='Legal: {0}'}" FontSize="14"/>
+                                    </HorizontalStackLayout>
+                                    <HorizontalStackLayout Spacing="12">
+                                        <Label Text="{Binding Generation, StringFormat='Gen: {0}'}" FontSize="14"/>
+                                    </HorizontalStackLayout>
+                                </VerticalStackLayout>
+                                <!-- Download Button Column -->
+                                <Button
+                                    Grid.Column="1"
+                                    Text="Download"
+                                    Clicked="OnDownloadSinglePokemonClicked"
+                                    Margin="8,0,4,0"
+                                    VerticalOptions="Start"
+                                    HorizontalOptions="End"/>
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Border>
 
-            <Frame Padding="12" CornerRadius="12" BackgroundColor="{DynamicResource CardBackgroundColor}">
-                <VerticalStackLayout Spacing="8">
-                    <CollectionView x:Name="ResultsView" HeightRequest="300" SelectionMode="Multiple" SelectionChanged="OnResultsSelectionChanged">
-                        <CollectionView.ItemTemplate>
-                            <DataTemplate>
-                                <Frame Padding="8" Margin="4" CornerRadius="8" BackgroundColor="{DynamicResource CardBackgroundColor}">
-                                    <Frame.GestureRecognizers>
-                                        <TapGestureRecognizer NumberOfTapsRequired="1"
-                                            Command="{Binding Source={x:Reference MainPage}, Path=ShowDownloadMenuCommand}"
-                                            CommandParameter="{Binding .}" />
-                                    </Frame.GestureRecognizers>
-                                    <VerticalStackLayout Spacing="8">
-                                        <!-- Top: Nickname and Legal -->
-                                        <HorizontalStackLayout Spacing="12">
-                                            <Label Text="{Binding Nickname}" FontAttributes="Bold" FontSize="18"/>
-                                            <Label Text="{Binding Legal, StringFormat='Legal: {0}'}" FontSize="14"/>
-                                        </HorizontalStackLayout>
-                                        <!-- OT and IDs -->
-                                        <HorizontalStackLayout Spacing="12">
-                                            <Label Text="{Binding OT, StringFormat='OT: {0}'}" FontSize="14"/>
-                                            <Label Text="{Binding SID, StringFormat='SID: {0}'}" FontSize="14"/>
-                                            <Label Text="{Binding TID, StringFormat='TID: {0}'}" FontSize="14"/>
-                                        </HorizontalStackLayout>
-                                        <!-- Details -->
-                                        <HorizontalStackLayout Spacing="12">
-                                            <Label Text="{Binding Species, StringFormat='Species: {0}'}" FontSize="14"/>
-                                            <Label Text="{Binding Level, StringFormat='Lv. {0}'}" FontSize="14"/>
-                                            <Label Text="{Binding IsShiny, StringFormat='Shiny: {0}'}" FontSize="14"/>
-                                        </HorizontalStackLayout>
-                                        <!-- Generation -->
-                                        <HorizontalStackLayout Spacing="12">
-                                            <Label Text="{Binding Generation, StringFormat='Gen: {0}'}" FontSize="14"/>
-                                        </HorizontalStackLayout>
-                                    </VerticalStackLayout>
-                                </Frame>
-                            </DataTemplate>
-                        </CollectionView.ItemTemplate>
-                    </CollectionView>
-                    <HorizontalStackLayout Spacing="8" HorizontalOptions="Center">
-                        <Button Text="Previous" Clicked="OnPreviousPageClicked" />
-                        <Label x:Name="PageLabel" Text="Page 1" VerticalOptions="Center" />
-                        <Button Text="Next" Clicked="OnNextPageClicked" />
-                    </HorizontalStackLayout>
-                </VerticalStackLayout>
-            </Frame>
-
-        </VerticalStackLayout>
-    </ScrollView>
+        <!-- Navigation Bar at the Bottom -->
+        <Border Grid.Row="1"
+                Stroke="{DynamicResource CardBorderColor}"
+                StrokeThickness="1"
+                Background="{DynamicResource CardBackgroundColor}"
+                StrokeShape="RoundRectangle 12"
+                Padding="4">
+            <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="End" HorizontalOptions="FillAndExpand">
+                <Button Grid.Column="0" Text="Previous" Clicked="OnPreviousPageClicked" />
+                <Label Grid.Column="1" x:Name="PageLabel" Text="Page 1" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                <Button Grid.Column="2" Text="Next" Clicked="OnNextPageClicked" />
+            </Grid>
+        </Border>
+    </Grid>
 </ContentPage>

@@ -12,8 +12,6 @@ public partial class MainPage : ContentPage
     private int currentPage = 1;
     private const int pageSize = 30;
 
-    private IList<object> _selectedPokemon = [];
-
     private static readonly FilePickerFileType PkFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
     {
         { DevicePlatform.WinUI, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
@@ -199,6 +197,11 @@ public partial class MainPage : ContentPage
                 {
                     var bytes = Convert.FromBase64String(result.Pokemon);
                     var dest = await FileSaver.Default.SaveAsync(file.FileName, new MemoryStream(bytes));
+                    if (dest == null || !dest.IsSuccessful)
+                    {
+                        results.Add($"{file.FileName}: Failed to save legalized Pokémon.");
+                        continue;
+                    }
                     results.Add($"{file.FileName}: Saved to {dest?.FilePath}");
                 }
                 else
@@ -281,33 +284,10 @@ public partial class MainPage : ContentPage
         PageLabel.Text = $"Page {currentPage}";
     }
 
-    //private async void OnDownloadClicked(object sender, EventArgs e)
-    //{
-    //    if (sender is Button btn && btn.BindingContext is PokemonResult poke)
-    //    {
-    //        var result = await _api.DownloadPokemonAsync(poke.Code);
-    //        if (result == null || string.IsNullOrEmpty(result.Base_64))
-    //        {
-    //            await ShowAlert("Download", "Failed to download.", "OK");
-    //            return;
-    //        }
-    //        var bytes = Convert.FromBase64String(result.Base_64);
-    //        var fileName = $"{poke.Code}.pk{poke.Generation}";
-    //        var dest = await FileSaver.Default.SaveAsync(fileName, new MemoryStream(bytes));
-    //        await ShowAlert("Download", $"Saved to {dest?.FilePath}", "OK");
-    //    }
-    //}
-
-    private async Task DownloadSelectedPokemonAsync()
+    private async void OnDownloadSinglePokemonClicked(object sender, EventArgs e)
     {
-        if (_selectedPokemon == null || _selectedPokemon.Count == 0)
-            return;
-
-        if (_selectedPokemon.Count == 1)
+        if (sender is Button btn && btn.BindingContext is PokemonInfoDisplay poke)
         {
-            // Single file: ask for file location
-            var poke = _selectedPokemon[0] as PokemonInfoDisplay;
-            if (poke == null) return;
             var result = await _api.DownloadPokemonAsync(poke.Code.ToString());
             if (result == null || string.IsNullOrEmpty(result.Base_64))
             {
@@ -317,51 +297,11 @@ public partial class MainPage : ContentPage
             var bytes = Convert.FromBase64String(result.Base_64);
             var fileName = $"{poke.Code}.pk{poke.Generation}";
             var dest = await FileSaver.Default.SaveAsync(fileName, new MemoryStream(bytes));
+            if (dest == null || !dest.IsSuccessful)
+                return;
             await ShowAlert("Download", $"Saved to {dest?.FilePath}", "OK");
         }
-        else
-        {
-            // Multiple files: ask for folder
-            var folderResult = await FolderPicker.Default.PickAsync();
-            if (folderResult.IsSuccessful)
-            {
-                foreach (var obj in _selectedPokemon)
-                {
-                    if (obj is not PokemonInfoDisplay poke)
-                        continue;
-                    var result = await _api.DownloadPokemonAsync(poke.Code.ToString());
-                    if (result == null || string.IsNullOrEmpty(result.Base_64))
-                        continue;
-                    var bytes = Convert.FromBase64String(result.Base_64);
-                    var fileName = $"{poke.Code}.pk{poke.Generation}";
-                    var filePath = Path.Combine(folderResult.Folder.Path, fileName);
-                    using var fs = File.Create(filePath);
-                    await fs.WriteAsync(bytes, 0, bytes.Length);
-                }
-                await ShowAlert("Download", "All selected Pokémon saved.", "OK");
-            }
-        }
     }
-
-    private void OnResultsSelectionChanged(object sender, SelectionChangedEventArgs e)
-    {
-        _selectedPokemon = e.CurrentSelection.ToList();
-    }
-
-    public async void OnDownloadSelectedPokemon(object sender, EventArgs e)
-    {
-        await DownloadSelectedPokemonAsync();
-    }
-
-    public Command<object> ShowDownloadMenuCommand => new(async (item) =>
-    {
-        if (DeviceInfo.Platform == DevicePlatform.Android || DeviceInfo.Platform == DevicePlatform.iOS)
-        {
-            var action = await DisplayActionSheet("Actions", "Cancel", null, "Download");
-            if (action == "Download")
-                await DownloadSelectedPokemonAsync();
-        }
-    });
 
     private static string? GetGenerationFromFilename(string filename)
     {
