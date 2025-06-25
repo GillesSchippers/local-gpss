@@ -22,14 +22,11 @@
         <CollectionView x:Name="ResultsView" HeightRequest="300" SelectionMode="Multiple">
             <CollectionView.ItemTemplate>
                 <DataTemplate>
-                    <Frame BorderColor="Gray" Margin="2" Padding="4">
-                        <VerticalStackLayout>
-                            <Label Text="{Binding Code}" FontAttributes="Bold"/>
-                            <Label Text="{Binding Generation}" FontSize="12"/>
-                            <Label Text="{Binding Legal, StringFormat='Legal: {0}'}" FontSize="12"/>
-                            <Button Text="Download" Clicked="OnDownloadClicked"/>
-                        </VerticalStackLayout>
-                    </Frame>
+                    <StackLayout Padding="10">
+                        <Label Text="{Binding Code}" FontAttributes="Bold"/>
+                        <Label Text="{Binding Generation}" />
+                        <Label Text="{Binding Legal, StringFormat='Legal: {0}'}" />
+                    </StackLayout>
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>

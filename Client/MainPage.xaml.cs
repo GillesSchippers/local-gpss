@@ -15,7 +15,7 @@ public partial class MainPage : ContentPage
         api = new ApiService(config);
     }
 
-    private void OnSaveApiUrlClicked(object sender, EventArgs e)
+    private async void OnSaveApiUrlClicked(object sender, EventArgs e)
     {
         var url = ApiUrlEntry.Text?.Trim();
         if (!string.IsNullOrEmpty(url))
@@ -23,7 +23,7 @@ public partial class MainPage : ContentPage
             config.ApiUrl = url;
             ConfigService.Save(config);
             api.SetBaseUrl(url);
-            DisplayAlert("Config", "API URL saved.", "OK");
+            await DisplayAlert("Config", "API URL saved.", "OK");
         }
     }
 

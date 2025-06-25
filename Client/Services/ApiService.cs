@@ -14,6 +14,7 @@ namespace GPSS_Client.Services
         {
             _baseUrl = config.ApiUrl.TrimEnd('/');
             _httpClient = new HttpClient();
+            _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("PKSM/PKHeX");
         }
 
         public void SetBaseUrl(string url)
