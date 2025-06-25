@@ -78,18 +78,22 @@ public partial class MainPage : ContentPage
         if (files.Count() == 1)
         {
             var result = await _api.UploadPokemonAsync(streams[0], gens[0]);
-            if (!string.IsNullOrEmpty(result?.Code))
+            if (!string.IsNullOrEmpty(result?.Error))
+                await ShowAlert("Upload Failed", result.Error, "OK");
+            else if (!string.IsNullOrEmpty(result?.Code))
                 await ShowAlert("Upload", $"Pokémon uploaded! Code: {result.Code}", "OK");
             else
-                await ShowAlert("Upload Failed", result?.Error ?? "Unknown error", "OK");
+                await ShowAlert("Upload Failed", "Unknown error", "OK");
         }
         else
         {
             var result = await _api.UploadBundleAsync(streams, gens);
-            if (!string.IsNullOrEmpty(result?.Code))
+            if (!string.IsNullOrEmpty(result?.Error))
+                await ShowAlert("Upload Failed", result.Error, "OK");
+            else if (!string.IsNullOrEmpty(result?.Code))
                 await ShowAlert("Upload", $"Bundle uploaded! Code: {result.Code}", "OK");
             else
-                await ShowAlert("Upload Failed", result?.Error ?? "Unknown error", "OK");
+                await ShowAlert("Upload Failed", "Unknown error", "OK");
         }
     }
 
@@ -222,7 +226,17 @@ public partial class MainPage : ContentPage
     {
         int nextPage = currentPage + 1;
         var result = await _api.SearchAsync("pokemon", null, nextPage, pageSize);
-        if (result?.Pokemon != null && result.Pokemon.Count > 0)
+        if (result == null)
+        {
+            await ShowAlert("Error", "Could not connect to server.", "OK");
+            return;
+        }
+        if (!string.IsNullOrEmpty(result.Error))
+        {
+            await ShowAlert("Error", result.Error, "OK");
+            return;
+        }
+        if (result.Pokemon != null && result.Pokemon.Count > 0)
         {
             currentPage = nextPage;
             ResultsView.ItemsSource = result.Pokemon;
@@ -237,7 +251,17 @@ public partial class MainPage : ContentPage
         {
             int prevPage = currentPage - 1;
             var result = await _api.SearchAsync("pokemon", null, prevPage, pageSize);
-            if (result?.Pokemon != null && result.Pokemon.Count > 0)
+            if (result == null)
+            {
+                await ShowAlert("Error", "Could not connect to server.", "OK");
+                return;
+            }
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                await ShowAlert("Error", result.Error, "OK");
+                return;
+            }
+            if (result.Pokemon != null && result.Pokemon.Count > 0)
             {
                 currentPage = prevPage;
                 ResultsView.ItemsSource = result.Pokemon;
@@ -250,9 +274,20 @@ public partial class MainPage : ContentPage
     private async Task SearchAsync()
     {
         var result = await _api.SearchAsync("pokemon", null, currentPage, pageSize);
+        if (result == null)
+        {
+            await ShowAlert("Error", "Could not connect to server.", "OK");
+            return;
+        }
+        if (!string.IsNullOrEmpty(result.Error))
+        {
+            await ShowAlert("Error", result.Error, "OK");
+            return;
+        }
+
         var displayList = new List<PokemonInfoDisplay>();
 
-        if (result?.Pokemon != null)
+        if (result.Pokemon != null)
         {
             foreach (var poke in result.Pokemon)
             {
@@ -289,7 +324,17 @@ public partial class MainPage : ContentPage
         if (sender is Button btn && btn.BindingContext is PokemonInfoDisplay poke)
         {
             var result = await _api.DownloadPokemonAsync(poke.Code.ToString());
-            if (result == null || string.IsNullOrEmpty(result.Base_64))
+            if (result == null)
+            {
+                await ShowAlert("Download", "Could not connect to server.", "OK");
+                return;
+            }
+            if (!string.IsNullOrEmpty(result.Error))
+            {
+                await ShowAlert("Download", result.Error, "OK");
+                return;
+            }
+            if (string.IsNullOrEmpty(result.Base_64))
             {
                 await ShowAlert("Download", "Failed to download.", "OK");
                 return;

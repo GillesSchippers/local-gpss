@@ -29,124 +29,180 @@ namespace GPSS_Client.Services
 
         public async Task<LegalityCheckResult?> CheckLegalityAsync(Stream pkmnFile, string generation)
         {
-            var url = $"{_baseUrl}/api/v2/pksm/legality";
-            var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(pkmnFile);
-            content.Add(fileContent, "pkmn", "pkmn");
-            content.Headers.Add("generation", generation);
+            try
+            {
+                var url = $"{_baseUrl}/api/v2/pksm/legality";
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(pkmnFile);
+                content.Add(fileContent, "pkmn", "pkmn");
+                content.Headers.Add("generation", generation);
 
-            Debug.WriteLine($"[Request] POST {url} | Generation: {generation}");
+                Debug.WriteLine($"[Request] POST {url} | Generation: {generation}");
 
-            var response = await _httpClient.PostAsync(url, content);
-            var json = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.PostAsync(url, content);
+                var json = await response.Content.ReadAsStringAsync();
 
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
 
-            return JsonSerializer.Deserialize<LegalityCheckResult>(json);
+                return JsonSerializer.Deserialize<LegalityCheckResult>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] CheckLegalityAsync: {ex.Message}");
+                return new LegalityCheckResult { Error = "Could not connect to server." };
+            }
         }
 
         public async Task<LegalizeResult?> LegalizeAsync(Stream pkmnFile, string generation, string version)
         {
-            var url = $"{_baseUrl}/api/v2/pksm/legalize";
-            var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(pkmnFile);
-            content.Add(fileContent, "pkmn", "pkmn");
-            content.Headers.Add("generation", generation);
-            content.Headers.Add("version", version);
+            try
+            {
+                var url = $"{_baseUrl}/api/v2/pksm/legalize";
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(pkmnFile);
+                content.Add(fileContent, "pkmn", "pkmn");
+                content.Headers.Add("generation", generation);
+                content.Headers.Add("version", version);
 
-            Debug.WriteLine($"[Request] POST {url} | Generation: {generation}, Version: {version}");
+                Debug.WriteLine($"[Request] POST {url} | Generation: {generation}, Version: {version}");
 
-            var response = await _httpClient.PostAsync(url, content);
-            var json = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.PostAsync(url, content);
+                var json = await response.Content.ReadAsStringAsync();
 
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
 
-            return JsonSerializer.Deserialize<LegalizeResult>(json);
+                return JsonSerializer.Deserialize<LegalizeResult>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] LegalizeAsync: {ex.Message}");
+                return new LegalizeResult { Error = "Could not connect to server." };
+            }
         }
 
         // --- GpssController ---
 
         public async Task<SearchResult?> SearchAsync(string entityType, object? searchBody = null, int page = 1, int amount = 30)
         {
-            var url = $"{_baseUrl}/api/v2/gpss/search/{entityType}?page={page}&amount={amount}";
-            var json = searchBody != null ? JsonSerializer.Serialize(searchBody) : "{}";
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
+            try
+            {
+                var url = $"{_baseUrl}/api/v2/gpss/search/{entityType}?page={page}&amount={amount}";
+                var json = searchBody != null ? JsonSerializer.Serialize(searchBody) : "{}";
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            Debug.WriteLine($"[Request] POST {url} | Page: {page}, Amount: {amount}, Body: {json}");
+                Debug.WriteLine($"[Request] POST {url} | Page: {page}, Amount: {amount}, Body: {json}");
 
-            var response = await _httpClient.PostAsync(url, content);
-            var resultJson = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.PostAsync(url, content);
+                var resultJson = await response.Content.ReadAsStringAsync();
 
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {resultJson}");
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {resultJson}");
 
-            return JsonSerializer.Deserialize<SearchResult>(resultJson);
+                return JsonSerializer.Deserialize<SearchResult>(resultJson);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] SearchAsync: {ex.Message}");
+                return new SearchResult { Error = "Could not connect to server." }; ;
+            }
         }
 
         public async Task<UploadResult?> UploadPokemonAsync(Stream pkmnFile, string generation)
         {
-            var url = $"{_baseUrl}/api/v2/gpss/upload/pokemon";
-            var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(pkmnFile);
-            content.Add(fileContent, "pkmn", "pkmn");
-            content.Headers.Add("generation", generation);
+            try
+            {
+                var url = $"{_baseUrl}/api/v2/gpss/upload/pokemon";
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(pkmnFile);
+                content.Add(fileContent, "pkmn", "pkmn");
+                content.Headers.Add("generation", generation);
 
-            Debug.WriteLine($"[Request] POST {url} | Generation: {generation}");
+                Debug.WriteLine($"[Request] POST {url} | Generation: {generation}");
 
-            var response = await _httpClient.PostAsync(url, content);
-            var json = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.PostAsync(url, content);
+                var json = await response.Content.ReadAsStringAsync();
 
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
 
-            return JsonSerializer.Deserialize<UploadResult>(json);
+                return JsonSerializer.Deserialize<UploadResult>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] UploadPokemonAsync: {ex.Message}");
+                return new UploadResult { Error = "Could not connect to server." };
+            }
         }
 
         public async Task<UploadResult?> UploadBundleAsync(List<Stream> pkmnFiles, List<string> generations)
         {
-            var url = $"{_baseUrl}/api/v2/gpss/upload/bundle";
-            var content = new MultipartFormDataContent();
-            content.Headers.Add("count", pkmnFiles.Count.ToString());
-            content.Headers.Add("generations", string.Join(",", generations));
-
-            for (int i = 0; i < pkmnFiles.Count; i++)
+            try
             {
-                var fileContent = new StreamContent(pkmnFiles[i]);
-                content.Add(fileContent, $"pkmn{i + 1}", $"pkmn{i + 1}");
+                var url = $"{_baseUrl}/api/v2/gpss/upload/bundle";
+                var content = new MultipartFormDataContent();
+                content.Headers.Add("count", pkmnFiles.Count.ToString());
+                content.Headers.Add("generations", string.Join(",", generations));
+
+                for (int i = 0; i < pkmnFiles.Count; i++)
+                {
+                    var fileContent = new StreamContent(pkmnFiles[i]);
+                    content.Add(fileContent, $"pkmn{i + 1}", $"pkmn{i + 1}");
+                }
+
+                Debug.WriteLine($"[Request] POST {url} | Count: {pkmnFiles.Count}, Generations: {string.Join(",", generations)}");
+
+                var response = await _httpClient.PostAsync(url, content);
+                var json = await response.Content.ReadAsStringAsync();
+
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
+
+                return JsonSerializer.Deserialize<UploadResult>(json);
             }
-
-            Debug.WriteLine($"[Request] POST {url} | Count: {pkmnFiles.Count}, Generations: {string.Join(",", generations)}");
-
-            var response = await _httpClient.PostAsync(url, content);
-            var json = await response.Content.ReadAsStringAsync();
-
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
-
-            return JsonSerializer.Deserialize<UploadResult>(json);
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] UploadBundleAsync: {ex.Message}");
+                return new UploadResult { Error = "Could not connect to server." };
+            }
         }
 
         public async Task<PokemonDownloadResult?> DownloadPokemonAsync(string code, bool download = true)
         {
-            var url = $"{_baseUrl}/api/v2/gpss/download/pokemon/{code}?download={download.ToString().ToLower()}";
-            Debug.WriteLine($"[Request] GET {url} | Code: {code}, Download: {download}");
+            try
+            {
+                var url = $"{_baseUrl}/api/v2/gpss/download/pokemon/{code}?download={download.ToString().ToLower()}";
+                Debug.WriteLine($"[Request] GET {url} | Code: {code}, Download: {download}");
 
-            var response = await _httpClient.GetAsync(url);
-            var json = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.GetAsync(url);
+                var json = await response.Content.ReadAsStringAsync();
 
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
 
-            return JsonSerializer.Deserialize<PokemonDownloadResult>(json);
+                return JsonSerializer.Deserialize<PokemonDownloadResult>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] DownloadPokemonAsync: {ex.Message}");
+                return new PokemonDownloadResult { Error = "Could not connect to server." };
+            }
         }
 
         public async Task<BundleDownloadResult?> DownloadBundleAsync(string code, bool download = true)
         {
-            var url = $"{_baseUrl}/api/v2/gpss/download/bundle/{code}?download={download.ToString().ToLower()}";
-            Debug.WriteLine($"[Request] GET {url} | Code: {code}, Download: {download}");
+            try
+            {
+                var url = $"{_baseUrl}/api/v2/gpss/download/bundle/{code}?download={download.ToString().ToLower()}";
+                Debug.WriteLine($"[Request] GET {url} | Code: {code}, Download: {download}");
 
-            var response = await _httpClient.GetAsync(url);
-            var json = await response.Content.ReadAsStringAsync();
+                var response = await _httpClient.GetAsync(url);
+                var json = await response.Content.ReadAsStringAsync();
 
-            Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
+                Debug.WriteLine($"[Response] {url} | Status: {response.StatusCode} | Body: {json}");
 
-            return JsonSerializer.Deserialize<BundleDownloadResult>(json);
+                return JsonSerializer.Deserialize<BundleDownloadResult>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[Error] DownloadBundleAsync: {ex.Message}");
+                return new BundleDownloadResult { Error = "Could not connect to server." };
+            }
         }
     }
 
@@ -197,6 +253,8 @@ namespace GPSS_Client.Services
         public List<PokemonResult>? Pokemon { get; set; }
         [JsonPropertyName("bundles")]
         public List<BundleResult>? Bundles { get; set; }
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
     }
 
     public class PokemonResult
@@ -209,6 +267,8 @@ namespace GPSS_Client.Services
         public string Code { get; set; }
         [JsonPropertyName("generation")]
         public string Generation { get; set; }
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
     }
 
     public class BundleResult
@@ -227,6 +287,8 @@ namespace GPSS_Client.Services
         public int Count { get; set; }
         [JsonPropertyName("legal")]
         public bool Legality { get; set; }
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
     }
 
     public class PokemonDownloadResult
@@ -239,6 +301,8 @@ namespace GPSS_Client.Services
         public string Code { get; set; }
         [JsonPropertyName("generation")]
         public string Generation { get; set; }
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
     }
 
     public class BundleDownloadResult
@@ -257,5 +321,7 @@ namespace GPSS_Client.Services
         public int Count { get; set; }
         [JsonPropertyName("legal")]
         public bool Legality { get; set; }
+        [JsonPropertyName("error")]
+        public string? Error { get; set; }
     }
 }
