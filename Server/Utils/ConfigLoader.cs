@@ -1,7 +1,7 @@
-using Models;
+using GPSS_Server.Models;
 using System.Text.Json;
 
-namespace Utils
+namespace GPSS_Server.Utils
 {
     public static class ConfigLoader
     {

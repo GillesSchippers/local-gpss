@@ -108,7 +108,7 @@ namespace GPSS_Client.Services
         public new string Species { get; set; }
         public new string Ability { get; set; }
         public new string Generation { get; set; }
-        public new string language { get; set; }
+        public new string Language { get; set; }
 
         public bool Legal { get; set; }
         public string Code { get; set; }

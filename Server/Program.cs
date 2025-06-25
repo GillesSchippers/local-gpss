@@ -1,6 +1,6 @@
-using Datastore;
+using GPSS_Server.Datastore;
+using GPSS_Server.Utils;
 using Microsoft.EntityFrameworkCore;
-using Utils;
 
 internal class Program
 {

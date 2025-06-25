@@ -8,7 +8,7 @@
 		<Company>$(Authors)</Company>
 		<Product>$(AssemblyName)</Product>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-		<Version>1.2.2</Version>
+		<Version>1.2.3</Version>
 	</PropertyGroup>
 
 	<ItemGroup>

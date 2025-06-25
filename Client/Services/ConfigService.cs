@@ -20,7 +20,10 @@ namespace GPSS_Client.Services
                 }
             }
             catch { /* Ignore and use default */ }
-            return new ClientConfig();
+
+            var defaultConfig = new ClientConfig();
+            Save(defaultConfig);
+            return defaultConfig;
         }
 
         public static void Save(ClientConfig config)

@@ -1,8 +1,8 @@
+using GPSS_Server.Models;
+using GPSS_Server.Utils;
 using Microsoft.EntityFrameworkCore;
-using Models;
-using Utils;
 
-namespace Datastore
+namespace GPSS_Server.Datastore
 {
     public class GpssDbContext(DbContextOptions<GpssDbContext> options) : DbContext(options)
     {

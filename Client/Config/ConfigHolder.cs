@@ -1,23 +1,17 @@
 namespace GPSS_Client.Config
 {
-    public class ConfigHolder
+    public class ConfigHolder(ClientConfig config)
     {
-        private ClientConfig _config;
         public event EventHandler? ConfigChanged;
-
-        public ConfigHolder(ClientConfig config)
-        {
-            _config = config;
-        }
 
         public ClientConfig Config
         {
-            get => _config;
+            get => config;
             set
             {
-                if (_config != value)
+                if (config != value)
                 {
-                    _config = value;
+                    config = value;
                     ConfigChanged?.Invoke(this, EventArgs.Empty);
                 }
             }

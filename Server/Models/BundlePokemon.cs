@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace Models
+namespace GPSS_Server.Models
 {
     public class BundlePokemon
     {

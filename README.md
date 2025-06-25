@@ -1,5 +1,6 @@
 # GPSS
 My toolset and fork for interacting with and hosting GPSS.
+<br>(This fork remains compatible with the [PKSM](https://github.com/FlagBrew/PKSM) 3DS application)
 
 ---
 #### Original README:

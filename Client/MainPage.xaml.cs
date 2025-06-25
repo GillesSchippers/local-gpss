@@ -13,7 +13,7 @@ public partial class MainPage : ContentPage
     private int currentPage = 1;
     private const int pageSize = 30;
 
-    private static readonly FilePickerFileType PkFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>> // Future proofing for new platforms
+    private static readonly FilePickerFileType PkFileType = new(new Dictionary<DevicePlatform, IEnumerable<string>> // Future proofing for new platforms
     {
         { DevicePlatform.WinUI, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
         { DevicePlatform.macOS, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
@@ -21,7 +21,7 @@ public partial class MainPage : ContentPage
         { DevicePlatform.Android, new[] { "application/octet-stream" } }, // Android: filter after selection
     });
 
-    private static readonly PickOptions PkPickOptions = new PickOptions
+    private static readonly PickOptions PkPickOptions = new()
     {
         PickerTitle = "Select Pokémon PKM file(s)",
         FileTypes = PkFileType
@@ -48,13 +48,13 @@ public partial class MainPage : ContentPage
     private async void OnUploadPokemonClicked(object sender, EventArgs e)
     {
         var files = await FilePicker.PickMultipleAsync(PkPickOptions);
-        if (files == null || files.Count() == 0)
+        if (files == null || !files.Any())
             return;
 
         // Filter for .pk* files in case the platform doesn't filter
-        files = files.Where(f => Path.GetExtension(f.FileName).ToLowerInvariant().StartsWith(".pk")).ToList();
+        files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
 
-        if (files.Count() == 0)
+        if (!files.Any())
         {
             await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
             return;
@@ -105,12 +105,12 @@ public partial class MainPage : ContentPage
     private async void OnCheckLegalityClicked(object sender, EventArgs e)
     {
         var files = await FilePicker.PickMultipleAsync(PkPickOptions);
-        if (files == null || files.Count() == 0)
+        if (files == null || !files.Any())
             return;
 
-        files = files.Where(f => Path.GetExtension(f.FileName).ToLowerInvariant().StartsWith(".pk")).ToList();
+        files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
 
-        if (files.Count() == 0)
+        if (!files.Any())
         {
             await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
             return;
@@ -162,12 +162,12 @@ public partial class MainPage : ContentPage
     private async void OnLegalizePokemonClicked(object sender, EventArgs e)
     {
         var files = await FilePicker.PickMultipleAsync(PkPickOptions);
-        if (files == null || files.Count() == 0)
+        if (files == null || !files.Any())
             return;
 
-        files = files.Where(f => Path.GetExtension(f.FileName).ToLowerInvariant().StartsWith(".pk")).ToList();
+        files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
 
-        if (files.Count() == 0)
+        if (!files.Any())
         {
             await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
             return;
@@ -224,7 +224,7 @@ public partial class MainPage : ContentPage
             }
         }
 
-        await ShowAlert("Legalize Results", string.Concat("\n\n", results), "OK");
+        await ShowAlert("Legalize Results", string.Join("\n\n", results), "OK");
     }
 
     private async void OnNextPageClicked(object sender, EventArgs e)
@@ -356,7 +356,7 @@ public partial class MainPage : ContentPage
     private static string? GetGenerationFromFilename(string filename)
     {
         var ext = Path.GetExtension(filename).ToLowerInvariant();
-        if (ext.StartsWith(".pk") && ext.Length > 3 && int.TryParse(ext.Substring(3), out var gen))
+        if (ext.StartsWith(".pk") && ext.Length > 3 && int.TryParse(ext.AsSpan(3), out var gen))
             return gen.ToString();
         return null;
     }

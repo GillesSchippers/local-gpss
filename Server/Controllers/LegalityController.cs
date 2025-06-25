@@ -1,7 +1,7 @@
+using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Utils;
 
-namespace Controllers
+namespace GPSS_Server.Controllers
 {
     [ApiController]
     [Route("/api/v2/pksm")]

@@ -1,5 +1,5 @@
-using Datastore;
-using Models;
+using GPSS_Server.Datastore;
+using GPSS_Server.Models;
 using PKHeX.Core;
 using PKHeX.Core.AutoMod;
 using System.Dynamic;
@@ -11,7 +11,7 @@ using System.Security.Principal;
 using System.Text;
 using System.Text.Json;
 
-namespace Utils
+namespace GPSS_Server.Utils
 {
     public static class Helpers
     {
@@ -140,7 +140,7 @@ namespace Utils
             {
                 code = "";
                 for (int i = 0; i < length; i++)
-                    code = String.Concat(code, Random.Shared.Next(10).ToString());
+                    code = string.Concat(code, Random.Shared.Next(10).ToString());
             } while (await db.CodeExistsAsync(table, code));
             return code;
         }

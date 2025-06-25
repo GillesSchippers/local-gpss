@@ -1,8 +1,8 @@
-using Models;
+using GPSS_Server.Models;
 using PKHeX.Core;
 using PKHeX.Core.AutoMod;
 
-namespace Utils
+namespace GPSS_Server.Utils
 {
     public class Pkhex
     {

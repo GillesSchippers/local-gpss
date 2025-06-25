@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace Models
+namespace GPSS_Server.Models
 {
     public struct Config
     {

@@ -1,11 +1,11 @@
-using Datastore;
+using GPSS_Server.Datastore;
+using GPSS_Server.Models;
+using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Mvc;
-using Models;
 using PKHeX.Core;
 using System.Text.Json;
-using Utils;
 
-namespace Controllers
+namespace GPSS_Server.Controllers
 {
     [ApiController]
     [Route("/api/v2/gpss")]
