@@ -82,10 +82,14 @@ jobs:
             PROJECT_PATH="Client/GPSS Client.csproj"
             EXECUTABLE_NAME="GPSS Client"
           fi
+          FRAMEWORK=""
+          if [ "${{ matrix.project }}" = "client" ]; then
+            FRAMEWORK="-f net9.0-windows10.0.19041.0"
+          fi
           dotnet publish "$PROJECT_PATH" -c Release -o ./output/${{ matrix.output }}-${{ matrix.project }} --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
-            -r ${{ matrix.arch }}
+            -r ${{ matrix.arch }} $FRAMEWORK
 
       - name: Set execute permissions (Linux/macOS)
         if: runner.os != 'Windows'
