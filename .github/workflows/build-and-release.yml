@@ -30,10 +30,6 @@ jobs:
             arch: linux-arm64
             output: linux-arm64
             project: server
-          - os: macos-latest
-            arch: osx-x64
-            output: osx64
-            project: server
           - os: windows-latest
             arch: win-x64
             output: win64
