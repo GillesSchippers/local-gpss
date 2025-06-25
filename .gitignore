@@ -14,5 +14,7 @@ Config.json
 *.user
 Properties/
 launchSettings.json
+/Client/Properties
+/Server/Properties
 /Client/Properties/launchSettings.json
 /Server/Properties/launchSettings.json
