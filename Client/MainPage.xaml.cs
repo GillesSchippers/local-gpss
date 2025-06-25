@@ -12,7 +12,7 @@ public partial class MainPage : ContentPage
     private int currentPage = 1;
     private const int pageSize = 30;
 
-    private static readonly FilePickerFileType PkFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>>
+    private static readonly FilePickerFileType PkFileType = new FilePickerFileType(new Dictionary<DevicePlatform, IEnumerable<string>> // Future proofing for new platforms
     {
         { DevicePlatform.WinUI, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
         { DevicePlatform.macOS, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
