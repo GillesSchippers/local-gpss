@@ -20,7 +20,7 @@ namespace GPSS_Server.Controllers
         [HttpPost("legality")]
         public IActionResult Check([FromForm] IFormFile pkmn, [FromHeader] string generation)
         {
-            var result = PKHexService.LegalityCheck(pkmn, Helpers.EntityContextFromString(generation));
+            var result = PKHeXService.LegalityCheck(pkmn, Helpers.EntityContextFromString(generation));
 
             if (Helpers.DoesPropertyExist(result, "error"))
             {
@@ -40,7 +40,7 @@ namespace GPSS_Server.Controllers
         [HttpPost("legalize")]
         public IActionResult Legalize([FromForm] IFormFile pkmn, [FromHeader] string generation, [FromHeader] string version)
         {
-            var result = PKHexService.Legalize(pkmn, Helpers.EntityContextFromString(generation),
+            var result = PKHeXService.Legalize(pkmn, Helpers.EntityContextFromString(generation),
                 Helpers.GameVersionFromString(version));
 
             if (Helpers.DoesPropertyExist(result, "error"))
