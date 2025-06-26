@@ -1,18 +1,32 @@
-using GPSS_Server.Datastore;
-using GPSS_Server.Models;
-using GPSS_Server.Utils;
-using Microsoft.AspNetCore.Mvc;
-using PKHeX.Core;
-using System.Text.Json;
-
 namespace GPSS_Server.Controllers
 {
+    using GPSS_Server.Datastore;
+    using GPSS_Server.Models;
+    using GPSS_Server.Utils;
+    using Microsoft.AspNetCore.Mvc;
+    using PKHeX.Core;
+    using System.Text.Json;
+
+    /// <summary>
+    /// Defines the <see cref="GpssController" />.
+    /// </summary>
     [ApiController]
     [Route("/api/v2/gpss")]
     public class GpssController(Database database) : ControllerBase
     {
+        /// <summary>
+        /// Defines the _supportedEntities.
+        /// </summary>
         private readonly string[] _supportedEntities = ["pokemon", "bundles", "bundle"];
 
+        /// <summary>
+        /// The List.
+        /// </summary>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        /// <param name="searchBody">The searchBody<see cref="JsonElement?"/>.</param>
+        /// <param name="page">The page<see cref="int"/>.</param>
+        /// <param name="amount">The amount<see cref="int"/>.</param>
+        /// <returns>The <see cref="Task{IActionResult}"/>.</returns>
         [HttpPost("search/{entityType}")]
         public async Task<IActionResult> List([FromRoute] string entityType, [FromBody] JsonElement? searchBody, [FromQuery] int page = 1,
             [FromQuery] int amount = 30)
@@ -48,6 +62,11 @@ namespace GPSS_Server.Controllers
             });
         }
 
+        /// <summary>
+        /// The Upload.
+        /// </summary>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{IActionResult}"/>.</returns>
         [HttpPost("upload/{entityType}")]
         public async Task<IActionResult> Upload([FromRoute] string entityType)
         {
@@ -137,6 +156,13 @@ namespace GPSS_Server.Controllers
             return Ok(new { code = bundleCode });
         }
 
+        /// <summary>
+        /// The Download.
+        /// </summary>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <param name="download">The download<see cref="bool"/>.</param>
+        /// <returns>The <see cref="Task{IActionResult}"/>.</returns>
         [HttpGet("download/{entityType}/{code}")]
         public async Task<IActionResult> Download(
             [FromRoute] string entityType,

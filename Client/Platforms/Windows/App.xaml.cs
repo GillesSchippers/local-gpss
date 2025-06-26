@@ -9,14 +9,17 @@ namespace GPSS_Client.WinUI
     public partial class App : MauiWinUIApplication
     {
         /// <summary>
-        /// Initializes the singleton application object.  This is the first line of authored code
-        /// executed, and as such is the logical equivalent of main() or WinMain().
+        /// Initializes a new instance of the <see cref="App"/> class.
         /// </summary>
         public App()
         {
             this.InitializeComponent();
         }
 
+        /// <summary>
+        /// The CreateMauiApp.
+        /// </summary>
+        /// <returns>The <see cref="MauiApp"/>.</returns>
         protected override MauiApp CreateMauiApp() => MauiProgram.CreateMauiApp();
     }
 

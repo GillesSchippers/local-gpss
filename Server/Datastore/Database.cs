@@ -1,15 +1,34 @@
-using GPSS_Server.Models;
-using GPSS_Server.Utils;
-using Microsoft.EntityFrameworkCore;
-
 namespace GPSS_Server.Datastore
 {
+    using GPSS_Server.Config;
+    using GPSS_Server.Models;
+    using GPSS_Server.Utils;
+    using Microsoft.EntityFrameworkCore;
+
+    /// <summary>
+    /// Defines the <see cref="GpssDbContext" />.
+    /// </summary>
     public class GpssDbContext(DbContextOptions<GpssDbContext> options) : DbContext(options)
     {
+        /// <summary>
+        /// Gets or sets the Pokemons.
+        /// </summary>
         public DbSet<Pokemon> Pokemons { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Bundles.
+        /// </summary>
         public DbSet<Bundle> Bundles { get; set; }
+
+        /// <summary>
+        /// Gets or sets the BundlePokemons.
+        /// </summary>
         public DbSet<BundlePokemon> BundlePokemons { get; set; }
 
+        /// <summary>
+        /// The OnModelCreating.
+        /// </summary>
+        /// <param name="modelBuilder">The modelBuilder<see cref="ModelBuilder"/>.</param>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.Entity<Pokemon>()
@@ -38,11 +57,50 @@ namespace GPSS_Server.Datastore
         }
     }
 
+    /// <summary>
+    /// Defines the <see cref="DatabaseServiceExtensions" />.
+    /// </summary>
+    public static class DatabaseServiceExtensions
+    {
+        /// <summary>
+        /// The AddGpssDatabase.
+        /// </summary>
+        /// <param name="services">The services<see cref="IServiceCollection"/>.</param>
+        /// <param name="config">The config<see cref="ServerConfig"/>.</param>
+        /// <returns>The <see cref="IServiceCollection"/>.</returns>
+        public static IServiceCollection AddGpssDatabase(this IServiceCollection services, ServerConfig config)
+        {
+#if DEBUG
+            // Use in-memory database for debugging/mocking
+            services.AddDbContext<GpssDbContext>(options =>
+                options.UseInMemoryDatabase("MockGpssDb"));
+#else
+            var connectionString = $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};";
+            services.AddDbContext<GpssDbContext>(options =>
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+            );
+#endif
+            services.AddScoped<Database>();
+            return services;
+        }
+    }
+
+    /// <summary>
+    /// Defines the <see cref="Database" />.
+    /// </summary>
     public class Database(GpssDbContext db)
     {
+        /// <summary>
+        /// Gets the Instance.
+        /// </summary>
         public static Database? Instance { get; } = new(new GpssDbContext(new DbContextOptions<GpssDbContext>()));
 
-        #region Pokemon Functions
+        /// <summary>
+        /// The CheckIfPokemonExistsAsync.
+        /// </summary>
+        /// <param name="base64">The base64<see cref="string"/>.</param>
+        /// <param name="returnId">The returnId<see cref="bool"/>.</param>
+        /// <returns>The <see cref="Task{string?}"/>.</returns>
         public async Task<string?> CheckIfPokemonExistsAsync(string base64, bool returnId = false) // UNUSED
         {
             var base64Hash = Helpers.ComputeSha256Hash(base64);
@@ -56,6 +114,14 @@ namespace GPSS_Server.Datastore
             return returnId ? pokemon.Id.ToString() : pokemon.DownloadCode;
         }
 
+        /// <summary>
+        /// The InsertPokemonAsync.
+        /// </summary>
+        /// <param name="base64">The base64<see cref="string"/>.</param>
+        /// <param name="legal">The legal<see cref="bool"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <param name="generation">The generation<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{long}"/>.</returns>
         public async Task<long> InsertPokemonAsync(string base64, bool legal, string code, string generation)
         {
             var base64Hash = Helpers.ComputeSha256Hash(base64);
@@ -76,6 +142,13 @@ namespace GPSS_Server.Datastore
             return pokemon.Id;
         }
 
+        /// <summary>
+        /// The ListPokemonsAsync.
+        /// </summary>
+        /// <param name="page">The page<see cref="int"/>.</param>
+        /// <param name="pageSize">The pageSize<see cref="int"/>.</param>
+        /// <param name="search">The search<see cref="Search?"/>.</param>
+        /// <returns>The <see cref="Task{List{GpssPokemon}}"/>.</returns>
         public async Task<List<GpssPokemon>> ListPokemonsAsync(int page = 1, int pageSize = 30, Search? search = null)
         {
             var query = db.Pokemons.AsNoTracking();
@@ -127,6 +200,11 @@ namespace GPSS_Server.Datastore
             })];
         }
 
+        /// <summary>
+        /// The GetPokemonIdAsync.
+        /// </summary>
+        /// <param name="base64">The base64<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{long?}"/>.</returns>
         public async Task<long?> GetPokemonIdAsync(string base64)
         {
             var base64Hash = Helpers.ComputeSha256Hash(base64);
@@ -137,6 +215,11 @@ namespace GPSS_Server.Datastore
             return pokemon?.Id;
         }
 
+        /// <summary>
+        /// The GetPokemonDownloadCodeAsync.
+        /// </summary>
+        /// <param name="base64">The base64<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{string?}"/>.</returns>
         public async Task<string?> GetPokemonDownloadCodeAsync(string base64)
         {
             var base64Hash = Helpers.ComputeSha256Hash(base64);
@@ -146,10 +229,12 @@ namespace GPSS_Server.Datastore
 
             return pokemon?.DownloadCode;
         }
-        #endregion
 
-        #region Bundle Functions
-
+        /// <summary>
+        /// The CheckIfBundleExistsAsync.
+        /// </summary>
+        /// <param name="pokemonIds">The pokemonIds<see cref="List{long}"/>.</param>
+        /// <returns>The <see cref="Task{string?}"/>.</returns>
         public async Task<string?> CheckIfBundleExistsAsync(List<long> pokemonIds)
         {
             // Find bundles that contain exactly the same set of pokemonIds
@@ -176,6 +261,15 @@ namespace GPSS_Server.Datastore
             return null;
         }
 
+        /// <summary>
+        /// The InsertBundleAsync.
+        /// </summary>
+        /// <param name="legal">The legal<see cref="bool"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <param name="minGen">The minGen<see cref="string"/>.</param>
+        /// <param name="maxGen">The maxGen<see cref="string"/>.</param>
+        /// <param name="ids">The ids<see cref="List{long}"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         public async Task InsertBundleAsync(bool legal, string code, string minGen, string maxGen, List<long> ids)
         {
             var bundle = new Bundle
@@ -192,6 +286,13 @@ namespace GPSS_Server.Datastore
             await db.SaveChangesAsync();
         }
 
+        /// <summary>
+        /// The ListBundlesAsync.
+        /// </summary>
+        /// <param name="page">The page<see cref="int"/>.</param>
+        /// <param name="pageSize">The pageSize<see cref="int"/>.</param>
+        /// <param name="search">The search<see cref="Search?"/>.</param>
+        /// <returns>The <see cref="Task{List{GpssBundle}}"/>.</returns>
         public async Task<List<GpssBundle>> ListBundlesAsync(int page = 1, int pageSize = 30, Search? search = null)
         {
             var query = db.Bundles
@@ -260,9 +361,13 @@ namespace GPSS_Server.Datastore
                 return new GpssBundle(pokemons, downloadCodes, data);
             })];
         }
-        #endregion
 
-        #region Generic Functions
+        /// <summary>
+        /// The CodeExistsAsync.
+        /// </summary>
+        /// <param name="table">The table<see cref="string"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{bool}"/>.</returns>
         public async Task<bool> CodeExistsAsync(string table, string code)
         {
             return table switch
@@ -273,6 +378,12 @@ namespace GPSS_Server.Datastore
             };
         }
 
+        /// <summary>
+        /// The IncrementDownloadAsync.
+        /// </summary>
+        /// <param name="table">The table<see cref="string"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         public async Task IncrementDownloadAsync(string table, string code)
         {
             if (table == "pokemon")
@@ -302,6 +413,11 @@ namespace GPSS_Server.Datastore
             }
         }
 
+        /// <summary>
+        /// The CountAsync.
+        /// </summary>
+        /// <param name="table">The table<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{int}"/>.</returns>
         public async Task<int> CountAsync(string table)
         {
             return table switch
@@ -311,6 +427,5 @@ namespace GPSS_Server.Datastore
                 _ => 0
             };
         }
-        #endregion
     }
 }
