@@ -134,6 +134,8 @@ namespace GPSS_Client
                         await ShowAlert("Upload Failed", "Unknown error", "OK");
                     }
                 }
+
+                await SearchAsync();
             }
             catch (Exception ex)
             {
