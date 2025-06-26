@@ -6,7 +6,7 @@ namespace GPSS_Client.Services
     /// <summary>
     /// Defines the <see cref="PkhexService" />.
     /// </summary>
-    public class PkhexService
+    public class PKHexService
     {
         /// <summary>
         /// The GetPkm.

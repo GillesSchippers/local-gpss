@@ -20,8 +20,7 @@ namespace GPSS_Server.Utils
         /// <summary>
         /// The Init.
         /// </summary>
-        /// <returns>The <see cref="bool"/>.</returns>
-        public static bool Init()
+        public static void Init()
         {
             if (IsRunningAsAdminOrRoot())
             {
@@ -33,7 +32,7 @@ namespace GPSS_Server.Utils
             RibbonStrings.ResetDictionary(GameInfo.Strings.ribbons);
             Legalizer.EnableEasterEggs = false;
 
-            return true;
+            return;
         }
 
         /// <summary>
@@ -203,11 +202,11 @@ namespace GPSS_Server.Utils
         }
 
         /// <summary>
-        /// The GetAdressFromString.
+        /// The GetAddressFromString.
         /// </summary>
         /// <param name="address">The address<see cref="string"/>.</param>
         /// <returns>The <see cref="IPAddress?"/>.</returns>
-        public static IPAddress? GetAdressFromString(string address)
+        public static IPAddress? GetAddressFromString(string address)
         {
             try
             {

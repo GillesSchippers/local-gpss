@@ -20,7 +20,7 @@
 
             builder.Services.AddSingleton<ConfigHolder>(sp => new ConfigHolder(ConfigService.Load()));
             builder.Services.AddSingleton<ConfigService>();
-            builder.Services.AddSingleton<PkhexService>();
+            builder.Services.AddSingleton<PKHexService>();
             builder.Services.AddSingleton<ApiService>();
 
             builder.Services.AddTransient<AppShell>();

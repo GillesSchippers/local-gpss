@@ -50,7 +50,7 @@ internal class Program
                     Environment.Exit(3);
                 }
 
-                IPAddress? address = Helpers.GetAdressFromString(config.GpssHost);
+                IPAddress? address = Helpers.GetAddressFromString(config.GpssHost);
                 if (address == null)
                 {
                     Console.WriteLine($"Error: Invalid Hostname or IP address. Please configure a valid host.");

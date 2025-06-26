@@ -519,7 +519,7 @@
                 {
                     if (!string.IsNullOrEmpty(poke.Base64))
                     {
-                        var pkmInfo = PkhexService.GetPokemonInfo(poke.Base64);
+                        var pkmInfo = PKHexService.GetPokemonInfo(poke.Base64);
                         if (pkmInfo != null)
                         {
                             var display = new PokemonInfoDisplay

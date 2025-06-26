@@ -6,9 +6,9 @@ namespace GPSS_Server.Services
     using PKHeX.Core.AutoMod;
 
     /// <summary>
-    /// Defines the <see cref="PKhexService" />.
+    /// Defines the <see cref="PKHexService" />.
     /// </summary>
-    public class PKhexService
+    public class PKHexService
     {
         /// <summary>
         /// The LegalityCheck.
