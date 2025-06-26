@@ -79,9 +79,9 @@
                 StrokeShape="RoundRectangle 12"
                 Padding="4">
             <Grid ColumnDefinitions="Auto,*,Auto" VerticalOptions="End" HorizontalOptions="FillAndExpand">
-                <Button Grid.Column="0" Text="Previous" Clicked="OnPreviousPageClicked" />
-                <Label Grid.Column="1" x:Name="PageLabel" Text="Page 1" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
-                <Button Grid.Column="2" Text="Next" Clicked="OnNextPageClicked" />
+                <Button Grid.Column="0" Text="Previous" Clicked="OnPreviousBoxClicked" />
+                <Label Grid.Column="1" x:Name="BoxLabel" Text="Box 1" VerticalOptions="Center" HorizontalOptions="Center" HorizontalTextAlignment="Center"/>
+                <Button Grid.Column="2" Text="Next" Clicked="OnNextBoxClicked" />
             </Grid>
         </Border>
     </Grid>

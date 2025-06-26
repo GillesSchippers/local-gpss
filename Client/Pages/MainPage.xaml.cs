@@ -33,14 +33,14 @@
         private ClientConfig _config;
 
         /// <summary>
-        /// Defines the currentPage.
+        /// Defines the currentBox.
         /// </summary>
-        private int currentPage = 1;
+        private int currentBox = 1;
 
         /// <summary>
-        /// Defines the pageSize.
+        /// Defines the boxSize.
         /// </summary>
-        private const int pageSize = 30;
+        private const int boxSize = 30;
 
         /// <summary>
         /// Defines the PkFileType.
@@ -63,7 +63,7 @@
         };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MainPage"/> class.
+        /// Initializes a new instance of the <see cref="MainBox"/> class.
         /// </summary>
         /// <param name="configHolder">The configHolder<see cref="ConfigHolder"/>.</param>
         /// <param name="api">The api<see cref="ApiService"/>.</param>
@@ -368,79 +368,79 @@
         }
 
         /// <summary>
-        /// The OnNextPageClicked.
+        /// The OnNextBoxClicked.
         /// </summary>
         /// <param name="sender">The sender<see cref="object"/>.</param>
         /// <param name="e">The e<see cref="EventArgs"/>.</param>
-        private async void OnNextPageClicked(object sender, EventArgs e)
+        private async void OnNextBoxClicked(object sender, EventArgs e)
         {
-            _logger.LogDebug("Next page button clicked. Current page: {CurrentPage}", currentPage);
-            int nextPage = currentPage + 1;
-            var result = await _api.SearchAsync("pokemon", null, nextPage, pageSize);
+            _logger.LogDebug("Next box button clicked. Current box: {CurrentBox}", currentBox);
+            int nextBox = currentBox + 1;
+            var result = await _api.SearchAsync("pokemon", null, nextBox, boxSize);
             if (result == null)
             {
-                _logger.LogError("Failed to fetch next page: API returned null.");
+                _logger.LogError("Failed to fetch next box: API returned null.");
                 await ShowAlert("Error", "Could not connect to server.", "OK");
                 return;
             }
             if (!string.IsNullOrEmpty(result.Error))
             {
-                _logger.LogError("Error fetching next page: {Error}", result.Error);
+                _logger.LogError("Error fetching next box: {Error}", result.Error);
                 await ShowAlert("Error", result.Error, "OK");
                 return;
             }
             if (result.Pokemon != null && result.Pokemon.Count > 0)
             {
-                currentPage = nextPage;
+                currentBox = nextBox;
                 ResultsView.ItemsSource = result.Pokemon;
-                PageLabel.Text = $"Page {currentPage}";
-                _logger.LogInformation("Page changed to {CurrentPage}", currentPage);
+                BoxLabel.Text = $"Box {currentBox}";
+                _logger.LogInformation("Box changed to {CurrentBox}", currentBox);
             }
             else
             {
-                _logger.LogInformation("No more Pokémon found on next page.");
+                _logger.LogInformation("No more Pokémon found on next box.");
             }
         }
 
         /// <summary>
-        /// The OnPreviousPageClicked.
+        /// The OnPreviousBoxClicked.
         /// </summary>
         /// <param name="sender">The sender<see cref="object"/>.</param>
         /// <param name="e">The e<see cref="EventArgs"/>.</param>
-        private async void OnPreviousPageClicked(object sender, EventArgs e)
+        private async void OnPreviousBoxClicked(object sender, EventArgs e)
         {
-            _logger.LogDebug("Previous page button clicked. Current page: {CurrentPage}", currentPage);
-            if (currentPage > 1)
+            _logger.LogDebug("Previous box button clicked. Current box: {CurrentBox}", currentBox);
+            if (currentBox > 1)
             {
-                int prevPage = currentPage - 1;
-                var result = await _api.SearchAsync("pokemon", null, prevPage, pageSize);
+                int prevBox = currentBox - 1;
+                var result = await _api.SearchAsync("pokemon", null, prevBox, boxSize);
                 if (result == null)
                 {
-                    _logger.LogError("Failed to fetch previous page: API returned null.");
+                    _logger.LogError("Failed to fetch previous box: API returned null.");
                     await ShowAlert("Error", "Could not connect to server.", "OK");
                     return;
                 }
                 if (!string.IsNullOrEmpty(result.Error))
                 {
-                    _logger.LogError("Error fetching previous page: {Error}", result.Error);
+                    _logger.LogError("Error fetching previous box: {Error}", result.Error);
                     await ShowAlert("Error", result.Error, "OK");
                     return;
                 }
                 if (result.Pokemon != null && result.Pokemon.Count > 0)
                 {
-                    currentPage = prevPage;
+                    currentBox = prevBox;
                     ResultsView.ItemsSource = result.Pokemon;
-                    PageLabel.Text = $"Page {currentPage}";
-                    _logger.LogInformation("Page changed to {CurrentPage}", currentPage);
+                    BoxLabel.Text = $"Box {currentBox}";
+                    _logger.LogInformation("Box changed to {CurrentBox}", currentBox);
                 }
                 else
                 {
-                    _logger.LogInformation("No more Pokémon found on previous page.");
+                    _logger.LogInformation("No more Pokémon found on previous box.");
                 }
             }
             else
             {
-                _logger.LogInformation("Already at the first page, cannot go back further.");
+                _logger.LogInformation("Already at the first box, cannot go back further.");
             }
         }
 
@@ -496,8 +496,8 @@
         /// <returns>The <see cref="Task"/>.</returns>
         private async Task SearchAsync()
         {
-            _logger.LogDebug("Performing Pokémon search. Page: {CurrentPage}, PageSize: {PageSize}", currentPage, pageSize);
-            var result = await _api.SearchAsync("pokemon", null, currentPage, pageSize);
+            _logger.LogDebug("Performing Pokémon search. Box: {CurrentBox}, BoxSize: {BoxSize}", currentBox, boxSize);
+            var result = await _api.SearchAsync("pokemon", null, currentBox, boxSize);
             if (result == null)
             {
                 _logger.LogError("Search failed: API returned null.");
@@ -555,7 +555,7 @@
             {
                 _logger.LogInformation("No Pokémon found in search results.");
             }
-            PageLabel.Text = $"Page {currentPage}";
+            BoxLabel.Text = $"Box {currentBox}";
         }
 
         // Ensures DisplayAlert always works and shows all text
