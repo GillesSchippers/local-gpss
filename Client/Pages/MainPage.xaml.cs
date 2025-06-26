@@ -6,6 +6,8 @@
     using GPSS_Client.Services;
     using GPSS_Client.Utils;
     using Microsoft.Extensions.Logging;
+    using Microsoft.Maui.Controls;
+    using System.Linq;
 
     /// <summary>
     /// Defines the <see cref="MainPage" />.
@@ -63,7 +65,7 @@
         };
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MainBox"/> class.
+        /// Initializes a new instance of the <see cref="MainPage"/> class.
         /// </summary>
         /// <param name="configHolder">The configHolder<see cref="ConfigHolder"/>.</param>
         /// <param name="api">The api<see cref="ApiService"/>.</param>
@@ -487,6 +489,109 @@
             else
             {
                 _logger.LogWarning("Download button clicked but sender or binding context was invalid.");
+            }
+        }
+
+        /// <summary>
+        /// The OnPkFileDrop.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="DropEventArgs"/>.</param>
+        private async void OnPkFileDrop(object sender, DropEventArgs e)
+        {
+            try
+            {
+                var filePaths = new List<string>();
+
+#if WINDOWS
+                // Windows: Use PlatformArgs to get file paths from drag-and-drop
+                if (e.PlatformArgs is not null &&
+                    e.PlatformArgs.DragEventArgs.DataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+                {
+                    var items = await e.PlatformArgs.DragEventArgs.DataView.GetStorageItemsAsync();
+                    foreach (var item in items)
+                    {
+                        if (item is Windows.Storage.StorageFile file)
+                            filePaths.Add(file.Path);
+                    }
+                }
+#else
+                // Fallback for other platforms (if supported)
+                if (e.Data is not null && e.Data.Contains(Microsoft.Maui.ApplicationModel.DataTransfer.DropDataFormats.Files))
+                {
+                    var names = await e.Data.GetFileNamesAsync();
+                    filePaths.AddRange(names);
+                }
+#endif
+
+                // Only accept .pk* files
+                var pkFiles = filePaths
+                    .Where(f => Path.GetExtension(f).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))
+                    .ToList();
+
+                if (!pkFiles.Any())
+                {
+                    await ShowAlert("Error", "No valid Pokémon files dropped.", "OK");
+                    return;
+                }
+
+                if (pkFiles.Count > 6)
+                {
+                    await ShowAlert("Error", "Select up to 6 files.", "OK");
+                    return;
+                }
+
+                var gens = new List<string>();
+                var streams = new List<Stream>();
+                try
+                {
+                    foreach (var filePath in pkFiles)
+                    {
+                        var gen = Helpers.GetGenerationFromFilename(Path.GetFileName(filePath));
+                        if (gen == null)
+                        {
+                            await ShowAlert("Error", $"Could not determine generation for {Path.GetFileName(filePath)}", "OK");
+                            return;
+                        }
+                        gens.Add(gen);
+                        streams.Add(File.OpenRead(filePath));
+                    }
+
+                    if (pkFiles.Count == 1)
+                    {
+                        var result = await _api.UploadPokemonAsync(streams[0], gens[0]);
+                        if (!string.IsNullOrEmpty(result?.Error))
+                            await ShowAlert("Upload Failed", result.Error, "OK");
+                        else if (!string.IsNullOrEmpty(result?.Code))
+                            await ShowAlert("Upload", $"Pokémon uploaded! Code: {result.Code}", "OK");
+                        else
+                            await ShowAlert("Upload Failed", "Unknown error", "OK");
+                    }
+                    else
+                    {
+                        var result = await _api.UploadBundleAsync(streams, gens);
+                        if (!string.IsNullOrEmpty(result?.Error))
+                            await ShowAlert("Upload Failed", result.Error, "OK");
+                        else if (!string.IsNullOrEmpty(result?.Code))
+                            await ShowAlert("Upload", $"Bundle uploaded! Code: {result.Code}", "OK");
+                        else
+                            await ShowAlert("Upload Failed", "Unknown error", "OK");
+                    }
+                }
+                finally
+                {
+                    foreach (var stream in streams)
+                    {
+                        stream.Dispose();
+                    }
+                }
+
+                await SearchAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception during Pokémon drag-and-drop upload.");
+                await ShowAlert("Error", "An unexpected error occurred during upload.", "OK");
             }
         }
 

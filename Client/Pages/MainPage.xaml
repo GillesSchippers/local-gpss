@@ -22,6 +22,9 @@
                 StrokeShape="RoundRectangle 12"
                 Padding="4"
                 VerticalOptions="FillAndExpand">
+            <Border.GestureRecognizers>
+                <DropGestureRecognizer Drop="OnPkFileDrop" AllowDrop="True" />
+            </Border.GestureRecognizers>
             <CollectionView x:Name="ResultsView"
                             SelectionMode="None"
                             VerticalOptions="FillAndExpand"
