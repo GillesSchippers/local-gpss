@@ -1,9 +1,9 @@
-namespace GPSS_Client.Config
+﻿namespace GPSS_Server.Config
 {
     /// <summary>
     /// Defines the <see cref="ConfigHolder" />.
     /// </summary>
-    public class ConfigHolder(ClientConfig config)
+    public class ConfigHolder(ServerConfig config)
     {
         /// <summary>
         /// Defines the ConfigChanged.
@@ -13,7 +13,7 @@ namespace GPSS_Client.Config
         /// <summary>
         /// Gets or sets the Config.
         /// </summary>
-        public ClientConfig Config
+        public ServerConfig Config
         {
             get => config;
             set

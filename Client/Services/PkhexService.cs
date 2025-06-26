@@ -1,14 +1,46 @@
-using PKHeX.Core;
-
 namespace GPSS_Client.Services
 {
-    public class PkhexService
+    using GPSS_Client.Models;
+    using PKHeX.Core;
+
+    /// <summary>
+    /// Defines the <see cref="PkhexService" />.
+    /// </summary>
+    public class PKHexService
     {
+        /// <summary>
+        /// The GetPkm.
+        /// </summary>
+        /// <param name="pkmStream">The pkmStream<see cref="Stream"/>.</param>
+        /// <returns>The <see cref="PKM?"/>.</returns>
         public static PKM? GetPkm(Stream pkmStream) => ParsePkm(pkmStream);
+
+        /// <summary>
+        /// The GetPkm.
+        /// </summary>
+        /// <param name="base64Pkm">The base64Pkm<see cref="string"/>.</param>
+        /// <returns>The <see cref="PKM?"/>.</returns>
         public static PKM? GetPkm(string base64Pkm) => ParsePkm(base64Pkm);
+
+        /// <summary>
+        /// The GetPokemonInfo.
+        /// </summary>
+        /// <param name="pkmStream">The pkmStream<see cref="Stream"/>.</param>
+        /// <returns>The <see cref="PokemonInfo?"/>.</returns>
         public static PokemonInfo? GetPokemonInfo(Stream pkmStream) => ParsePokemonInfo(pkmStream);
+
+        /// <summary>
+        /// The GetPokemonInfo.
+        /// </summary>
+        /// <param name="base64Pkm">The base64Pkm<see cref="string"/>.</param>
+        /// <returns>The <see cref="PokemonInfo?"/>.</returns>
         public static PokemonInfo? GetPokemonInfo(string base64Pkm) => ParsePokemonInfo(base64Pkm);
 
+        /// <summary>
+        /// The ParsePokemonInfo.
+        /// </summary>
+        /// <param name="pkmStream">The pkmStream<see cref="Stream"/>.</param>
+        /// <returns>The <see cref="PokemonInfo?"/>.</returns>
         private static PokemonInfo? ParsePokemonInfo(Stream pkmStream)
         {
             var pkm = ParsePkm(pkmStream);
@@ -31,6 +63,11 @@ namespace GPSS_Client.Services
             };
         }
 
+        /// <summary>
+        /// The ParsePokemonInfo.
+        /// </summary>
+        /// <param name="base64Pkm">The base64Pkm<see cref="string"/>.</param>
+        /// <returns>The <see cref="PokemonInfo?"/>.</returns>
         private static PokemonInfo? ParsePokemonInfo(string base64Pkm)
         {
             var pkm = ParsePkm(base64Pkm);
@@ -53,6 +90,11 @@ namespace GPSS_Client.Services
             };
         }
 
+        /// <summary>
+        /// The ParsePkm.
+        /// </summary>
+        /// <param name="pkmStream">The pkmStream<see cref="Stream"/>.</param>
+        /// <returns>The <see cref="PKM?"/>.</returns>
         private static PKM? ParsePkm(Stream pkmStream)
         {
             if (pkmStream == null)
@@ -71,6 +113,11 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The ParsePkm.
+        /// </summary>
+        /// <param name="base64Pkm">The base64Pkm<see cref="string"/>.</param>
+        /// <returns>The <see cref="PKM?"/>.</returns>
         private static PKM? ParsePkm(string base64Pkm)
         {
             if (string.IsNullOrWhiteSpace(base64Pkm))
@@ -86,31 +133,5 @@ namespace GPSS_Client.Services
                 return null;
             }
         }
-    }
-
-    public class PokemonInfo
-    {
-        public ushort Species { get; set; }
-        public string Nickname { get; set; }
-        public string OT { get; set; }
-        public int Gender { get; set; }
-        public int Level { get; set; }
-        public int Language { get; set; }
-        public int Ability { get; set; }
-        public int TID { get; set; }
-        public int SID { get; set; }
-        public bool IsShiny { get; set; }
-        public byte Generation { get; set; }
-    }
-
-    public partial class PokemonInfoDisplay : PokemonInfo
-    {
-        public new string Species { get; set; }
-        public new string Ability { get; set; }
-        public new string Generation { get; set; }
-        public new string Language { get; set; }
-
-        public bool Legal { get; set; }
-        public string Code { get; set; }
     }
 }

@@ -1,11 +1,21 @@
-using GPSS_Server.Models;
-using PKHeX.Core;
-using PKHeX.Core.AutoMod;
-
-namespace GPSS_Server.Utils
+namespace GPSS_Server.Services
 {
-    public class Pkhex
+    using GPSS_Server.Models;
+    using GPSS_Server.Utils;
+    using PKHeX.Core;
+    using PKHeX.Core.AutoMod;
+
+    /// <summary>
+    /// Defines the <see cref="PKHexService" />.
+    /// </summary>
+    public class PKHexService
     {
+        /// <summary>
+        /// The LegalityCheck.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="IFormFile"/>.</param>
+        /// <param name="context">The context<see cref="EntityContext?"/>.</param>
+        /// <returns>The <see cref="dynamic"/>.</returns>
         public static dynamic LegalityCheck(IFormFile pokemon, EntityContext? context)
         {
             var pkmn = Helpers.PokemonFromForm(pokemon, context ?? EntityContext.None);
@@ -18,6 +28,13 @@ namespace GPSS_Server.Utils
             return new LegalityCheckReport(CheckLegality(pkmn));
         }
 
+        /// <summary>
+        /// The Legalize.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="IFormFile"/>.</param>
+        /// <param name="context">The context<see cref="EntityContext?"/>.</param>
+        /// <param name="version">The version<see cref="GameVersion?"/>.</param>
+        /// <returns>The <see cref="dynamic"/>.</returns>
         public static dynamic Legalize(IFormFile pokemon, EntityContext? context, GameVersion? version)
         {
             var pkmn = Helpers.PokemonFromForm(pokemon, context ?? EntityContext.None);
@@ -38,11 +55,22 @@ namespace GPSS_Server.Utils
             return new AutoLegalizationResult(report, result, true);
         }
 
+        /// <summary>
+        /// The CheckLegality.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="PKM"/>.</param>
+        /// <returns>The <see cref="LegalityAnalysis"/>.</returns>
         private static LegalityAnalysis CheckLegality(PKM pokemon)
         {
             return new LegalityAnalysis(pokemon);
         }
 
+        /// <summary>
+        /// The AutoLegalize.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="PKM"/>.</param>
+        /// <param name="overriddenVersion">The overriddenVersion<see cref="GameVersion?"/>.</param>
+        /// <returns>The <see cref="PKM?"/>.</returns>
         private static PKM? AutoLegalize(PKM pokemon,
             GameVersion? overriddenVersion = null)
         {
@@ -79,10 +107,15 @@ namespace GPSS_Server.Utils
                 }
             }
 
-
             return !CheckLegality(pk).Valid ? null : pk;
         }
 
+        /// <summary>
+        /// The GetTrainerInfoWrapper.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="PKM"/>.</param>
+        /// <param name="version">The version<see cref="GameVersion?"/>.</param>
+        /// <returns>The <see cref="SimpleTrainerInfo"/>.</returns>
         private static SimpleTrainerInfo GetTrainerInfoWrapper(PKM pokemon, GameVersion? version)
         {
             return new SimpleTrainerInfo(version ?? GameVersion.SL)

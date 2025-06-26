@@ -1,6 +1,6 @@
-namespace GPSS_Client.Services
+namespace GPSS_Server.Services
 {
-    using GPSS_Client.Config;
+    using GPSS_Server.Config;
     using System.Text.Json;
 
     /// <summary>
@@ -16,22 +16,22 @@ namespace GPSS_Client.Services
         /// <summary>
         /// The Load.
         /// </summary>
-        /// <returns>The <see cref="ClientConfig"/>.</returns>
-        public static ClientConfig Load()
+        /// <returns>The <see cref="ServerConfig"/>.</returns>
+        public static ServerConfig Load()
         {
             try
             {
                 if (File.Exists(ConfigFilePath))
                 {
                     var json = File.ReadAllText(ConfigFilePath);
-                    var config = JsonSerializer.Deserialize<ClientConfig>(json);
+                    var config = JsonSerializer.Deserialize<ServerConfig>(json);
                     if (config != null)
                         return config;
                 }
             }
             catch { /* Ignore and use default */ }
 
-            var defaultConfig = new ClientConfig();
+            var defaultConfig = new ServerConfig();
             Save(defaultConfig);
             return defaultConfig;
         }
@@ -39,8 +39,8 @@ namespace GPSS_Client.Services
         /// <summary>
         /// The Save.
         /// </summary>
-        /// <param name="config">The config<see cref="ClientConfig"/>.</param>
-        public static void Save(ClientConfig config)
+        /// <param name="config">The config<see cref="ServerConfig"/>.</param>
+        public static void Save(ServerConfig config)
         {
             try
             {
