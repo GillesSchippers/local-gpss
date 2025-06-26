@@ -15,7 +15,7 @@ namespace GPSS_Client.Services
                 {
                     var json = File.ReadAllText(ConfigFilePath);
                     var config = JsonSerializer.Deserialize<ClientConfig>(json);
-                    if (config != null && !string.IsNullOrWhiteSpace(config.ApiUrl))
+                    if (config != null)
                         return config;
                 }
             }
@@ -28,8 +28,12 @@ namespace GPSS_Client.Services
 
         public static void Save(ClientConfig config)
         {
+#if DEBUG
+            return;
+#else
             var json = JsonSerializer.Serialize(config);
             File.WriteAllText(ConfigFilePath, json);
+#endif
         }
     }
 }

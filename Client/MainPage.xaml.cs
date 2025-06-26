@@ -1,382 +1,502 @@
 ﻿using CommunityToolkit.Maui.Storage;
 using GPSS_Client.Config;
+using GPSS_Client.Models;
 using GPSS_Client.Services;
+using GPSS_Client.Utils;
+using Microsoft.Extensions.Logging;
 
-namespace GPSS_Client;
-
-public partial class MainPage : ContentPage
+namespace GPSS_Client
 {
-    private readonly ConfigHolder _configHolder;
-    private ClientConfig _config;
-    private readonly ApiService _api;
-
-    private int currentPage = 1;
-    private const int pageSize = 30;
-
-    private static readonly FilePickerFileType PkFileType = new(new Dictionary<DevicePlatform, IEnumerable<string>> // Future proofing for new platforms
+    public partial class MainPage : ContentPage
     {
-        { DevicePlatform.WinUI, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
-        { DevicePlatform.macOS, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
-        { DevicePlatform.iOS, new[] { "public.data" } }, // iOS does not support extension filtering, but you can filter after selection
-        { DevicePlatform.Android, new[] { "application/octet-stream" } }, // Android: filter after selection
-    });
+        private readonly ConfigHolder _configHolder;
+        private ClientConfig _config;
+        private ILogger<MainPage> _logger;
+        private readonly ApiService _api;
 
-    private static readonly PickOptions PkPickOptions = new()
-    {
-        PickerTitle = "Select Pokémon PKM file(s)",
-        FileTypes = PkFileType
-    };
+        private int currentPage = 1;
+        private const int pageSize = 30;
 
-    public MainPage(ConfigHolder configHolder, ApiService api)
-    {
-        InitializeComponent();
-        _configHolder = configHolder;
-        _config = _configHolder.Config;
-        _api = api;
-
-        // Subscribe to config changes
-        _configHolder.ConfigChanged += OnConfigChanged;
-
-        _ = SearchAsync();
-    }
-
-    private void OnConfigChanged(object? sender, EventArgs e)
-    {
-        _config = _configHolder.Config;
-    }
-
-    private async void OnUploadPokemonClicked(object sender, EventArgs e)
-    {
-        var files = await FilePicker.PickMultipleAsync(PkPickOptions);
-        if (files == null || !files.Any())
-            return;
-
-        // Filter for .pk* files in case the platform doesn't filter
-        files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
-
-        if (!files.Any())
+        private static readonly FilePickerFileType PkFileType = new(new Dictionary<DevicePlatform, IEnumerable<string>> // Future proofing for new platforms
         {
-            await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
-            return;
+            { DevicePlatform.WinUI, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
+            { DevicePlatform.macOS, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
+            { DevicePlatform.iOS, new[] { "public.data" } }, // iOS does not support extension filtering, but you can filter after selection
+            { DevicePlatform.Android, new[] { "application/octet-stream" } }, // Android: filter after selection
+        });
+
+        private static readonly PickOptions PkPickOptions = new()
+        {
+            PickerTitle = "Select Pokémon PKM file(s)",
+            FileTypes = PkFileType
+        };
+
+        public MainPage(ConfigHolder configHolder, ApiService api, ILogger<MainPage> logger)
+        {
+            InitializeComponent();
+            _configHolder = configHolder;
+            _config = _configHolder.Config;
+            _logger = logger;
+            _api = api;
+
+            // Subscribe to config changes
+            _configHolder.ConfigChanged += OnConfigChanged;
+
+            SearchAsync();
         }
 
-        if (files.Count() > 6)
+        private void OnConfigChanged(object? sender, EventArgs e)
         {
-            await ShowAlert("Error", "Select up to 6 files.", "OK");
-            return;
+            _config = _configHolder.Config;
         }
 
-        var gens = new List<string>();
-        var streams = new List<Stream>();
-        foreach (var file in files)
+        private async void OnUploadPokemonClicked(object sender, EventArgs e)
         {
-            var gen = GetGenerationFromFilename(file.FileName);
-            if (gen == null)
+            try
             {
-                await ShowAlert("Error", $"Could not determine generation for {file.FileName}", "OK");
-                return;
-            }
-            gens.Add(gen);
-            streams.Add(await file.OpenReadAsync());
-        }
-
-        if (files.Count() == 1)
-        {
-            var result = await _api.UploadPokemonAsync(streams[0], gens[0]);
-            if (!string.IsNullOrEmpty(result?.Error))
-                await ShowAlert("Upload Failed", result.Error, "OK");
-            else if (!string.IsNullOrEmpty(result?.Code))
-                await ShowAlert("Upload", $"Pokémon uploaded! Code: {result.Code}", "OK");
-            else
-                await ShowAlert("Upload Failed", "Unknown error", "OK");
-        }
-        else
-        {
-            var result = await _api.UploadBundleAsync(streams, gens);
-            if (!string.IsNullOrEmpty(result?.Error))
-                await ShowAlert("Upload Failed", result.Error, "OK");
-            else if (!string.IsNullOrEmpty(result?.Code))
-                await ShowAlert("Upload", $"Bundle uploaded! Code: {result.Code}", "OK");
-            else
-                await ShowAlert("Upload Failed", "Unknown error", "OK");
-        }
-    }
-
-    private async void OnCheckLegalityClicked(object sender, EventArgs e)
-    {
-        var files = await FilePicker.PickMultipleAsync(PkPickOptions);
-        if (files == null || !files.Any())
-            return;
-
-        files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
-
-        if (!files.Any())
-        {
-            await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
-            return;
-        }
-
-        if (files.Count() > 6)
-        {
-            await ShowAlert("Error", "Select up to 6 files.", "OK");
-            return;
-        }
-
-        var results = new List<string>();
-        foreach (var file in files)
-        {
-            var gen = GetGenerationFromFilename(file.FileName);
-            if (gen == null)
-            {
-                results.Add($"{file.FileName}: Could not determine generation.");
-                continue;
-            }
-
-            using var stream = await file.OpenReadAsync();
-            var result = await _api.CheckLegalityAsync(stream, gen);
-            if (result == null)
-            {
-                results.Add($"{file.FileName}: No result from API.");
-            }
-            else if (!string.IsNullOrEmpty(result.Error))
-            {
-                results.Add($"{file.FileName}: Error: {result.Error}");
-            }
-            else if (result.Legal)
-            {
-                results.Add($"{file.FileName}: Pokémon is legal.");
-            }
-            else if (result.Report != null && result.Report.Length > 0)
-            {
-                results.Add($"{file.FileName}: {string.Join("; ", result.Report)}");
-            }
-            else
-            {
-                results.Add($"{file.FileName}: Pokémon is not legal. No details available.");
-            }
-        }
-
-        await ShowAlert("Legality Results", string.Join("\n\n", results), "OK");
-    }
-
-    private async void OnLegalizePokemonClicked(object sender, EventArgs e)
-    {
-        var files = await FilePicker.PickMultipleAsync(PkPickOptions);
-        if (files == null || !files.Any())
-            return;
-
-        files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
-
-        if (!files.Any())
-        {
-            await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
-            return;
-        }
-
-        if (files.Count() > 6)
-        {
-            await ShowAlert("Error", "Select up to 6 files.", "OK");
-            return;
-        }
-
-        var results = new List<string>();
-        foreach (var file in files)
-        {
-            var gen = GetGenerationFromFilename(file.FileName);
-            if (gen == null)
-            {
-                results.Add($"{file.FileName}: Could not determine generation.");
-                continue;
-            }
-
-            using var stream = await file.OpenReadAsync();
-            var result = await _api.LegalizeAsync(stream, gen, "Any");
-            if (result == null || !string.IsNullOrEmpty(result.Error))
-            {
-                results.Add($"{file.FileName}: Legalization failed.");
-            }
-            else if (result.Legal && !result.Ran)
-            {
-                results.Add($"{file.FileName}: Pokémon is already legal.");
-            }
-            else if (!string.IsNullOrEmpty(result.Pokemon))
-            {
-                var save = await ShowAlert("Legalize", $"{file.FileName}: Legalized! Save to file?", "Yes", "No");
-                if (save)
+                _logger.LogDebug("Upload Pokémon button clicked.");
+                var files = await FilePicker.PickMultipleAsync(PkPickOptions);
+                if (files == null || !files.Any())
                 {
-                    var bytes = Convert.FromBase64String(result.Pokemon);
-                    var dest = await FileSaver.Default.SaveAsync(file.FileName, new MemoryStream(bytes));
-                    if (dest == null || !dest.IsSuccessful)
+                    _logger.LogInformation("No files selected for upload.");
+                    return;
+                }
+
+                // Filter for .pk* files in case the platform doesn't filter
+                files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
+
+                if (!files.Any())
+                {
+                    _logger.LogError("No valid Pokémon files selected for upload.");
+                    await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
+                    return;
+                }
+
+                if (files.Count() > 6)
+                {
+                    _logger.LogError("More than 6 files selected for upload.");
+                    await ShowAlert("Error", "Select up to 6 files.", "OK");
+                    return;
+                }
+
+                var gens = new List<string>();
+                var streams = new List<Stream>();
+                foreach (var file in files)
+                {
+                    var gen = Helpers.GetGenerationFromFilename(file.FileName);
+                    if (gen == null)
                     {
-                        results.Add($"{file.FileName}: Failed to save legalized Pokémon.");
-                        continue;
+                        _logger.LogError("Could not determine generation for file: {FileName}", file.FileName);
+                        await ShowAlert("Error", $"Could not determine generation for {file.FileName}", "OK");
+                        return;
                     }
-                    results.Add($"{file.FileName}: Saved to {dest?.FilePath}");
+                    gens.Add(gen);
+                    streams.Add(await file.OpenReadAsync());
+                }
+
+                if (files.Count() == 1)
+                {
+                    _logger.LogInformation("Uploading single Pokémon file: {FileName}, Generation: {Generation}", files.First().FileName, gens[0]);
+                    var result = await _api.UploadPokemonAsync(streams[0], gens[0]);
+                    if (!string.IsNullOrEmpty(result?.Error))
+                    {
+                        _logger.LogError("Upload failed: {Error}", result.Error);
+                        await ShowAlert("Upload Failed", result.Error, "OK");
+                    }
+                    else if (!string.IsNullOrEmpty(result?.Code))
+                    {
+                        _logger.LogInformation("Upload successful. Code: {Code}", result.Code);
+                        await ShowAlert("Upload", $"Pokémon uploaded! Code: {result.Code}", "OK");
+                    }
+                    else
+                    {
+                        _logger.LogError("Upload failed: Unknown error.");
+                        await ShowAlert("Upload Failed", "Unknown error", "OK");
+                    }
                 }
                 else
                 {
-                    results.Add($"{file.FileName}: Legalized, not saved.");
+                    _logger.LogInformation("Uploading bundle of {Count} Pokémon files.", files.Count());
+                    var result = await _api.UploadBundleAsync(streams, gens);
+                    if (!string.IsNullOrEmpty(result?.Error))
+                    {
+                        _logger.LogError("Bundle upload failed: {Error}", result.Error);
+                        await ShowAlert("Upload Failed", result.Error, "OK");
+                    }
+                    else if (!string.IsNullOrEmpty(result?.Code))
+                    {
+                        _logger.LogInformation("Bundle upload successful. Code: {Code}", result.Code);
+                        await ShowAlert("Upload", $"Bundle uploaded! Code: {result.Code}", "OK");
+                    }
+                    else
+                    {
+                        _logger.LogError("Bundle upload failed: Unknown error.");
+                        await ShowAlert("Upload Failed", "Unknown error", "OK");
+                    }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                results.Add($"{file.FileName}: Legalization did not produce a file.");
+                _logger.LogError(ex, "Exception during Pokémon upload.");
+                await ShowAlert("Error", "An unexpected error occurred during upload.", "OK");
             }
         }
 
-        await ShowAlert("Legalize Results", string.Join("\n\n", results), "OK");
-    }
+        private async void OnCheckLegalityClicked(object sender, EventArgs e)
+        {
+            try
+            {
+                _logger.LogDebug("Check Legality button clicked.");
+                var files = await FilePicker.PickMultipleAsync(PkPickOptions);
+                if (files == null || !files.Any())
+                {
+                    _logger.LogInformation("No files selected for legality check.");
+                    return;
+                }
 
-    private async void OnNextPageClicked(object sender, EventArgs e)
-    {
-        int nextPage = currentPage + 1;
-        var result = await _api.SearchAsync("pokemon", null, nextPage, pageSize);
-        if (result == null)
-        {
-            await ShowAlert("Error", "Could not connect to server.", "OK");
-            return;
-        }
-        if (!string.IsNullOrEmpty(result.Error))
-        {
-            await ShowAlert("Error", result.Error, "OK");
-            return;
-        }
-        if (result.Pokemon != null && result.Pokemon.Count > 0)
-        {
-            currentPage = nextPage;
-            ResultsView.ItemsSource = result.Pokemon;
-            PageLabel.Text = $"Page {currentPage}";
-        }
-        // else: do nothing, stay on current page
-    }
+                files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
 
-    private async void OnPreviousPageClicked(object sender, EventArgs e)
-    {
-        if (currentPage > 1)
+                if (!files.Any())
+                {
+                    _logger.LogError("No valid Pokémon files selected for legality check.");
+                    await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
+                    return;
+                }
+
+                if (files.Count() > 6)
+                {
+                    _logger.LogError("More than 6 files selected for legality check.");
+                    await ShowAlert("Error", "Select up to 6 files.", "OK");
+                    return;
+                }
+
+                var results = new List<string>();
+                foreach (var file in files)
+                {
+                    var gen = Helpers.GetGenerationFromFilename(file.FileName);
+                    if (gen == null)
+                    {
+                        _logger.LogError("Could not determine generation for file: {FileName}", file.FileName);
+                        results.Add($"{file.FileName}: Could not determine generation.");
+                        continue;
+                    }
+
+                    using var stream = await file.OpenReadAsync();
+                    _logger.LogInformation("Checking legality for file: {FileName}, Generation: {Generation}", file.FileName, gen);
+                    var result = await _api.CheckLegalityAsync(stream, gen);
+                    if (result == null)
+                    {
+                        _logger.LogError("No result from API for file: {FileName}", file.FileName);
+                        results.Add($"{file.FileName}: No result from API.");
+                    }
+                    else if (!string.IsNullOrEmpty(result.Error))
+                    {
+                        _logger.LogError("Error from API for file: {FileName}: {Error}", file.FileName, result.Error);
+                        results.Add($"{file.FileName}: Error: {result.Error}");
+                    }
+                    else if (result.Legal)
+                    {
+                        results.Add($"{file.FileName}: Pokémon is legal.");
+                    }
+                    else if (result.Report != null && result.Report.Length > 0)
+                    {
+                        results.Add($"{file.FileName}: {string.Join("; ", result.Report)}");
+                    }
+                    else
+                    {
+                        _logger.LogError("Pokémon is not legal and no details available for file: {FileName}", file.FileName);
+                        results.Add($"{file.FileName}: Pokémon is not legal. No details available.");
+                    }
+                }
+
+                await ShowAlert("Legality Results", string.Join("\n\n", results), "OK");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception during legality check.");
+                await ShowAlert("Error", "An unexpected error occurred during legality check.", "OK");
+            }
+        }
+
+        private async void OnLegalizePokemonClicked(object sender, EventArgs e)
         {
-            int prevPage = currentPage - 1;
-            var result = await _api.SearchAsync("pokemon", null, prevPage, pageSize);
+            try
+            {
+                _logger.LogDebug("Legalize Pokémon button clicked.");
+                var files = await FilePicker.PickMultipleAsync(PkPickOptions);
+                if (files == null || !files.Any())
+                {
+                    _logger.LogInformation("No files selected for legalization.");
+                    return;
+                }
+
+                files = [.. files.Where(f => Path.GetExtension(f.FileName).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))];
+
+                if (!files.Any())
+                {
+                    _logger.LogError("No valid Pokémon files selected for legalization.");
+                    await ShowAlert("Error", "No valid Pokémon files selected.", "OK");
+                    return;
+                }
+
+                if (files.Count() > 6)
+                {
+                    _logger.LogError("More than 6 files selected for legalization.");
+                    await ShowAlert("Error", "Select up to 6 files.", "OK");
+                    return;
+                }
+
+                var results = new List<string>();
+                foreach (var file in files)
+                {
+                    var gen = Helpers.GetGenerationFromFilename(file.FileName);
+                    if (gen == null)
+                    {
+                        _logger.LogError("Could not determine generation for file: {FileName}", file.FileName);
+                        results.Add($"{file.FileName}: Could not determine generation.");
+                        continue;
+                    }
+
+                    using var stream = await file.OpenReadAsync();
+                    _logger.LogInformation("Legalizing file: {FileName}, Generation: {Generation}", file.FileName, gen);
+                    var result = await _api.LegalizeAsync(stream, gen, "Any");
+                    if (result == null || !string.IsNullOrEmpty(result.Error))
+                    {
+                        _logger.LogError("Legalization failed for file: {FileName}", file.FileName);
+                        results.Add($"{file.FileName}: Legalization failed.");
+                    }
+                    else if (result.Legal && !result.Ran)
+                    {
+                        results.Add($"{file.FileName}: Pokémon is already legal.");
+                    }
+                    else if (!string.IsNullOrEmpty(result.PokemonBase64))
+                    {
+                        var save = await ShowAlert("Legalize", $"{file.FileName}: Legalized! Save to file?", "Yes", "No");
+                        if (save)
+                        {
+                            var bytes = Convert.FromBase64String(result.PokemonBase64);
+                            var dest = await FileSaver.Default.SaveAsync(file.FileName, new MemoryStream(bytes));
+                            if (dest == null || !dest.IsSuccessful)
+                            {
+                                _logger.LogError("Failed to save legalized Pokémon for file: {FileName}", file.FileName);
+                                results.Add($"{file.FileName}: Failed to save legalized Pokémon.");
+                                continue;
+                            }
+                            _logger.LogInformation("Legalized Pokémon saved to {FilePath} for file: {FileName}", dest.FilePath, file.FileName);
+                            results.Add($"{file.FileName}: Saved to {dest?.FilePath}");
+                        }
+                        else
+                        {
+                            _logger.LogInformation("Legalized Pokémon not saved for file: {FileName}", file.FileName);
+                            results.Add($"{file.FileName}: Legalized, not saved.");
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogError("Legalization did not produce a file for: {FileName}", file.FileName);
+                        results.Add($"{file.FileName}: Legalization did not produce a file.");
+                    }
+                }
+
+                await ShowAlert("Legalize Results", string.Join("\n\n", results), "OK");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Exception during Pokémon legalization.");
+                await ShowAlert("Error", "An unexpected error occurred during legalization.", "OK");
+            }
+        }
+
+        private async void OnNextPageClicked(object sender, EventArgs e)
+        {
+            _logger.LogDebug("Next page button clicked. Current page: {CurrentPage}", currentPage);
+            int nextPage = currentPage + 1;
+            var result = await _api.SearchAsync("pokemon", null, nextPage, pageSize);
             if (result == null)
             {
+                _logger.LogError("Failed to fetch next page: API returned null.");
                 await ShowAlert("Error", "Could not connect to server.", "OK");
                 return;
             }
             if (!string.IsNullOrEmpty(result.Error))
             {
+                _logger.LogError("Error fetching next page: {Error}", result.Error);
                 await ShowAlert("Error", result.Error, "OK");
                 return;
             }
             if (result.Pokemon != null && result.Pokemon.Count > 0)
             {
-                currentPage = prevPage;
+                currentPage = nextPage;
                 ResultsView.ItemsSource = result.Pokemon;
                 PageLabel.Text = $"Page {currentPage}";
+                _logger.LogInformation("Page changed to {CurrentPage}", currentPage);
             }
-            // else: do nothing, stay on current page
-        }
-    }
-
-    private async Task SearchAsync()
-    {
-        var result = await _api.SearchAsync("pokemon", null, currentPage, pageSize);
-        if (result == null)
-        {
-            await ShowAlert("Error", "Could not connect to server.", "OK");
-            return;
-        }
-        if (!string.IsNullOrEmpty(result.Error))
-        {
-            await ShowAlert("Error", result.Error, "OK");
-            return;
-        }
-
-        var displayList = new List<PokemonInfoDisplay>();
-
-        if (result.Pokemon != null)
-        {
-            foreach (var poke in result.Pokemon)
+            else
             {
-                if (!string.IsNullOrEmpty(poke.Base_64))
+                _logger.LogInformation("No more Pokémon found on next page.");
+            }
+        }
+
+        private async void OnPreviousPageClicked(object sender, EventArgs e)
+        {
+            _logger.LogDebug("Previous page button clicked. Current page: {CurrentPage}", currentPage);
+            if (currentPage > 1)
+            {
+                int prevPage = currentPage - 1;
+                var result = await _api.SearchAsync("pokemon", null, prevPage, pageSize);
+                if (result == null)
                 {
-                    var pkmInfo = PkhexService.GetPokemonInfo(poke.Base_64);
-                    if (pkmInfo != null)
-                    {
-                        var display = new PokemonInfoDisplay
-                        {
-                            Nickname = pkmInfo.Nickname,
-                            OT = pkmInfo.OT,
-                            SID = pkmInfo.SID,
-                            TID = pkmInfo.TID,
-                            Level = pkmInfo.Level,
-                            IsShiny = pkmInfo.IsShiny,
-                            Species = PKHeX.Core.SpeciesName.GetSpeciesName(pkmInfo.Species, pkmInfo.Language),
-                            Generation = pkmInfo.Generation.ToString(),
-                            Legal = poke.Legal,
-                            Code = poke.Code
-                        };
-                        displayList.Add(display);
-                    }
+                    _logger.LogError("Failed to fetch previous page: API returned null.");
+                    await ShowAlert("Error", "Could not connect to server.", "OK");
+                    return;
+                }
+                if (!string.IsNullOrEmpty(result.Error))
+                {
+                    _logger.LogError("Error fetching previous page: {Error}", result.Error);
+                    await ShowAlert("Error", result.Error, "OK");
+                    return;
+                }
+                if (result.Pokemon != null && result.Pokemon.Count > 0)
+                {
+                    currentPage = prevPage;
+                    ResultsView.ItemsSource = result.Pokemon;
+                    PageLabel.Text = $"Page {currentPage}";
+                    _logger.LogInformation("Page changed to {CurrentPage}", currentPage);
+                }
+                else
+                {
+                    _logger.LogInformation("No more Pokémon found on previous page.");
                 }
             }
-            ResultsView.ItemsSource = null; // Force redraw
-            ResultsView.ItemsSource = displayList;
+            else
+            {
+                _logger.LogInformation("Already at the first page, cannot go back further.");
+            }
         }
-        PageLabel.Text = $"Page {currentPage}";
-    }
 
-    private async void OnDownloadSinglePokemonClicked(object sender, EventArgs e)
-    {
-        if (sender is Button btn && btn.BindingContext is PokemonInfoDisplay poke)
+        private async void OnDownloadSinglePokemonClicked(object sender, EventArgs e)
         {
-            var result = await _api.DownloadPokemonAsync(poke.Code.ToString());
+            if (sender is Button btn && btn.BindingContext is PokemonInfoDisplay poke)
+            {
+                _logger.LogDebug("Download button clicked for Pokémon with code: {Code}", poke.Code);
+                var result = await _api.DownloadPokemonAsync(poke.Code.ToString());
+                if (result == null)
+                {
+                    _logger.LogError("Failed to download Pokémon: API returned null for code {Code}", poke.Code);
+                    await ShowAlert("Download", "Could not connect to server.", "OK");
+                    return;
+                }
+                if (!string.IsNullOrEmpty(result.Error))
+                {
+                    _logger.LogError("Error downloading Pokémon with code {Code}: {Error}", poke.Code, result.Error);
+                    await ShowAlert("Download", result.Error, "OK");
+                    return;
+                }
+                if (string.IsNullOrEmpty(result.Base64))
+                {
+                    _logger.LogError("Download failed: No Base64 data for Pokémon with code {Code}", poke.Code);
+                    await ShowAlert("Download", "Failed to download.", "OK");
+                    return;
+                }
+                var bytes = Convert.FromBase64String(result.Base64);
+                var fileName = $"{poke.Code}.pk{poke.Generation}";
+                var dest = await FileSaver.Default.SaveAsync(fileName, new MemoryStream(bytes));
+                if (dest == null || !dest.IsSuccessful)
+                {
+                    _logger.LogError("Failed to save downloaded Pokémon to file for code {Code}", poke.Code);
+                    return;
+                }
+                _logger.LogInformation("Pokémon with code {Code} saved to {FilePath}", poke.Code, dest.FilePath);
+                await ShowAlert("Download", $"Saved to {dest?.FilePath}", "OK");
+            }
+            else
+            {
+                _logger.LogWarning("Download button clicked but sender or binding context was invalid.");
+            }
+        }
+
+        private async Task SearchAsync()
+        {
+            _logger.LogDebug("Performing Pokémon search. Page: {CurrentPage}, PageSize: {PageSize}", currentPage, pageSize);
+            var result = await _api.SearchAsync("pokemon", null, currentPage, pageSize);
             if (result == null)
             {
-                await ShowAlert("Download", "Could not connect to server.", "OK");
+                _logger.LogError("Search failed: API returned null.");
+                await ShowAlert("Error", "Could not connect to server.", "OK");
                 return;
             }
             if (!string.IsNullOrEmpty(result.Error))
             {
-                await ShowAlert("Download", result.Error, "OK");
+                _logger.LogError("Search error: {Error}", result.Error);
+                await ShowAlert("Error", result.Error, "OK");
                 return;
             }
-            if (string.IsNullOrEmpty(result.Base_64))
-            {
-                await ShowAlert("Download", "Failed to download.", "OK");
-                return;
-            }
-            var bytes = Convert.FromBase64String(result.Base_64);
-            var fileName = $"{poke.Code}.pk{poke.Generation}";
-            var dest = await FileSaver.Default.SaveAsync(fileName, new MemoryStream(bytes));
-            if (dest == null || !dest.IsSuccessful)
-                return;
-            await ShowAlert("Download", $"Saved to {dest?.FilePath}", "OK");
-        }
-    }
 
-    private static string? GetGenerationFromFilename(string filename)
-    {
-        var ext = Path.GetExtension(filename).ToLowerInvariant();
-        if (ext.StartsWith(".pk") && ext.Length > 3 && int.TryParse(ext.AsSpan(3), out var gen))
-            return gen.ToString();
-        return null;
-    }
+            var displayList = new List<PokemonInfoDisplay>();
 
-    // Ensures DisplayAlert always works and shows all text
-    private async Task<bool> ShowAlert(string title, string message, string accept, string? cancel = null)
-    {
-        bool result = false;
-        await MainThread.InvokeOnMainThreadAsync(async () =>
-        {
-            if (cancel == null)
+            if (result.Pokemon != null)
             {
-                await DisplayAlert(title, message, accept);
-                result = true;
+                foreach (var poke in result.Pokemon)
+                {
+                    if (!string.IsNullOrEmpty(poke.Base64))
+                    {
+                        var pkmInfo = PkhexService.GetPokemonInfo(poke.Base64);
+                        if (pkmInfo != null)
+                        {
+                            var display = new PokemonInfoDisplay
+                            {
+                                Nickname = pkmInfo.Nickname,
+                                OT = pkmInfo.OT,
+                                SID = pkmInfo.SID,
+                                TID = pkmInfo.TID,
+                                Level = pkmInfo.Level,
+                                IsShiny = pkmInfo.IsShiny,
+                                Species = PKHeX.Core.SpeciesName.GetSpeciesName(pkmInfo.Species, pkmInfo.Language),
+                                Generation = pkmInfo.Generation.ToString(),
+                                Legal = poke.Legal,
+                                Code = poke.Code
+                            };
+                            displayList.Add(display);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Failed to parse Pokémon info from Base64 for code {Code}", poke.Code);
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Pokémon entry with code {Code} has no Base64 data.", poke.Code);
+                    }
+                }
+                ResultsView.ItemsSource = null; // Force redraw
+                ResultsView.ItemsSource = displayList;
+                _logger.LogInformation("Search results updated. Count: {Count}", displayList.Count);
             }
             else
             {
-                result = await DisplayAlert(title, message, accept, cancel);
+                _logger.LogInformation("No Pokémon found in search results.");
             }
-        });
-        return result;
+            PageLabel.Text = $"Page {currentPage}";
+        }
+
+        // Ensures DisplayAlert always works and shows all text
+        private async Task<bool> ShowAlert(string title, string message, string accept, string? cancel = null)
+        {
+            _logger.LogDebug("Showing alert. Title: {Title}, Accept: {Accept}, Cancel: {Cancel}", title, accept, cancel);
+            bool result = false;
+            await MainThread.InvokeOnMainThreadAsync(async () =>
+            {
+                if (cancel == null)
+                {
+                    await DisplayAlert(title, message, accept);
+                    result = true;
+                }
+                else
+                {
+                    result = await DisplayAlert(title, message, accept, cancel);
+                }
+            });
+            return result;
+        }
     }
 }

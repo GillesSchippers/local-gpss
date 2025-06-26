@@ -28,8 +28,12 @@ namespace GPSS_Server.Services
 
         public static void Save(ServerConfig config)
         {
+#if DEBUG
+            return;
+#else
             var json = JsonSerializer.Serialize(config);
             File.WriteAllText(ConfigFilePath, json);
+#endif
         }
     }
 }

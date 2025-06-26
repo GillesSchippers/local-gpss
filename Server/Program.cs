@@ -4,7 +4,9 @@ using GPSS_Server.Services;
 using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+#if !DEBUG
 using System.Net;
+#endif
 
 internal class Program
 {
@@ -23,6 +25,12 @@ internal class Program
             // --- Kestrel endpoint configuration ---
             builder.WebHost.ConfigureKestrel(options =>
             {
+#if DEBUG
+                options.ListenLocalhost(8080, listenOptions =>
+                {
+                    listenOptions.Protocols = HttpProtocols.Http1;
+                });
+#else
                 if (config.GpssHttp && config.GpssHttps)
                 {
                     Console.WriteLine("Error: Both HTTP and HTTPS are enabled. Please enable only one.");
@@ -45,7 +53,7 @@ internal class Program
                 {
                     options.Listen(address, config.GpssPort, listenOptions =>
                     {
-                        listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
+                        listenOptions.Protocols = HttpProtocols.Http1;
                     });
                 }
 
@@ -63,6 +71,7 @@ internal class Program
                         listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
                     });
                 }
+#endif
             });
 
             Helpers.Init();
@@ -74,14 +83,14 @@ internal class Program
             using (var scope = app.Services.CreateScope())
             {
                 var db = scope.ServiceProvider.GetRequiredService<GpssDbContext>();
-                db.Database.Migrate();
+                if (db.Database.IsRelational())
+                {
+                    db.Database.Migrate();
+                }
             }
-
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
+#if DEBUG
+            app.UseDeveloperExceptionPage();
+#endif
             if (config.GpssHttps)
             {
                 app.UseHsts();
@@ -90,9 +99,10 @@ internal class Program
 
             app.Run();
         }
-        catch (Exception)
+        catch (Exception e)
         {
             Console.WriteLine("Error: Failed to start Local GPSS due to an unexpected exception.");
+            Console.WriteLine(e);
             Environment.Exit(1);
         }
     }
