@@ -1,19 +1,26 @@
-using GPSS_Server.Datastore;
-using GPSS_Server.Models;
-using PKHeX.Core;
-using PKHeX.Core.AutoMod;
-using System.Dynamic;
-using System.Net;
-using System.Runtime.InteropServices;
-using System.Security.Cryptography;
-using System.Security.Principal;
-using System.Text;
-using System.Text.Json;
-
 namespace GPSS_Server.Utils
 {
+    using GPSS_Server.Datastore;
+    using GPSS_Server.Models;
+    using PKHeX.Core;
+    using PKHeX.Core.AutoMod;
+    using System.Dynamic;
+    using System.Net;
+    using System.Runtime.InteropServices;
+    using System.Security.Cryptography;
+    using System.Security.Principal;
+    using System.Text;
+    using System.Text.Json;
+
+    /// <summary>
+    /// Defines the <see cref="Helpers" />.
+    /// </summary>
     public static class Helpers
     {
+        /// <summary>
+        /// The Init.
+        /// </summary>
+        /// <returns>The <see cref="bool"/>.</returns>
         public static bool Init()
         {
             if (IsRunningAsAdminOrRoot())
@@ -29,6 +36,11 @@ namespace GPSS_Server.Utils
             return true;
         }
 
+        /// <summary>
+        /// The EntityContextFromString.
+        /// </summary>
+        /// <param name="generation">The generation<see cref="string"/>.</param>
+        /// <returns>The <see cref="EntityContext"/>.</returns>
         public static EntityContext EntityContextFromString(string generation)
         {
             return generation switch
@@ -48,6 +60,11 @@ namespace GPSS_Server.Utils
             };
         }
 
+        /// <summary>
+        /// The GameVersionFromString.
+        /// </summary>
+        /// <param name="version">The version<see cref="string"/>.</param>
+        /// <returns>The <see cref="GameVersion"/>.</returns>
         public static GameVersion GameVersionFromString(string version)
         {
             if (!Enum.TryParse(version, out GameVersion gameVersion)) return GameVersion.Any;
@@ -55,6 +72,12 @@ namespace GPSS_Server.Utils
             return gameVersion;
         }
 
+        /// <summary>
+        /// The PokemonAndBase64FromForm.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="IFormFile"/>.</param>
+        /// <param name="context">The context<see cref="EntityContext"/>.</param>
+        /// <returns>The <see cref="dynamic"/>.</returns>
         public static dynamic PokemonAndBase64FromForm(IFormFile pokemon, EntityContext context = EntityContext.None)
         {
             using var memoryStream = new MemoryStream();
@@ -67,6 +90,12 @@ namespace GPSS_Server.Utils
             };
         }
 
+        /// <summary>
+        /// The PokemonFromForm.
+        /// </summary>
+        /// <param name="pokemon">The pokemon<see cref="IFormFile"/>.</param>
+        /// <param name="context">The context<see cref="EntityContext"/>.</param>
+        /// <returns>The <see cref="PKM?"/>.</returns>
         public static PKM? PokemonFromForm(IFormFile pokemon, EntityContext context = EntityContext.None)
         {
             using var memoryStream = new MemoryStream();
@@ -77,6 +106,12 @@ namespace GPSS_Server.Utils
 
         // This essentially takes in the search format that the FlagBrew website would've looked for
         // and re-shapes it in a way that the SQL query can use.
+
+        /// <summary>
+        /// The SearchTranslation.
+        /// </summary>
+        /// <param name="query">The query<see cref="JsonElement"/>.</param>
+        /// <returns>The <see cref="Search"/>.</returns>
         public static Search SearchTranslation(JsonElement query)
         {
             var search = new Search();
@@ -132,6 +167,13 @@ namespace GPSS_Server.Utils
             return search;
         }
 
+        /// <summary>
+        /// The GenerateDownloadCodeAsync.
+        /// </summary>
+        /// <param name="db">The db<see cref="Database"/>.</param>
+        /// <param name="table">The table<see cref="string"/>.</param>
+        /// <param name="length">The length<see cref="int"/>.</param>
+        /// <returns>The <see cref="Task{string}"/>.</returns>
         public static async Task<string> GenerateDownloadCodeAsync(Database db, string table, int length = 10)
         {
             string code;
@@ -145,6 +187,13 @@ namespace GPSS_Server.Utils
         }
 
         // Credit: https://stackoverflow.com/a/9956981
+
+        /// <summary>
+        /// The DoesPropertyExist.
+        /// </summary>
+        /// <param name="obj">The obj<see cref="dynamic"/>.</param>
+        /// <param name="name">The name<see cref="string"/>.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
         public static bool DoesPropertyExist(dynamic obj, string name)
         {
             if (obj is ExpandoObject)
@@ -153,6 +202,11 @@ namespace GPSS_Server.Utils
             return obj.GetType().GetProperty(name) != null;
         }
 
+        /// <summary>
+        /// The GetAdressFromString.
+        /// </summary>
+        /// <param name="address">The address<see cref="string"/>.</param>
+        /// <returns>The <see cref="IPAddress?"/>.</returns>
         public static IPAddress? GetAdressFromString(string address)
         {
             try
@@ -166,6 +220,10 @@ namespace GPSS_Server.Utils
             }
         }
 
+        /// <summary>
+        /// The IsRunningAsAdminOrRoot.
+        /// </summary>
+        /// <returns>The <see cref="bool"/>.</returns>
         public static bool IsRunningAsAdminOrRoot()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
@@ -185,6 +243,11 @@ namespace GPSS_Server.Utils
             }
         }
 
+        /// <summary>
+        /// The ComputeSha256Hash.
+        /// </summary>
+        /// <param name="rawData">The rawData<see cref="string"/>.</param>
+        /// <returns>The <see cref="string"/>.</returns>
         public static string ComputeSha256Hash(string rawData)
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawData));

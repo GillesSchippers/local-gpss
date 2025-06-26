@@ -4,12 +4,20 @@ using GPSS_Server.Services;
 using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+
 #if !DEBUG
 using System.Net;
 #endif
 
+/// <summary>
+/// Defines the <see cref="Program" />.
+/// </summary>
 internal class Program
 {
+    /// <summary>
+    /// The Main.
+    /// </summary>
+    /// <param name="args">The args<see cref="string[]"/>.</param>
     private static void Main(string[] args)
     {
         try

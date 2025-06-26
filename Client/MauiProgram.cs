@@ -1,12 +1,19 @@
-﻿using CommunityToolkit.Maui;
-using GPSS_Client.Config;
-using GPSS_Client.Services;
-using Microsoft.Extensions.Logging;
-
-namespace GPSS_Client
+﻿namespace GPSS_Client
 {
+    using CommunityToolkit.Maui;
+    using GPSS_Client.Config;
+    using GPSS_Client.Services;
+    using Microsoft.Extensions.Logging;
+
+    /// <summary>
+    /// Defines the <see cref="MauiProgram" />.
+    /// </summary>
     public static class MauiProgram
     {
+        /// <summary>
+        /// The CreateMauiApp.
+        /// </summary>
+        /// <returns>The <see cref="MauiApp"/>.</returns>
         public static MauiApp CreateMauiApp()
         {
             var builder = MauiApp.CreateBuilder();

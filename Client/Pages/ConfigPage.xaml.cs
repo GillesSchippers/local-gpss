@@ -1,17 +1,40 @@
-using GPSS_Client.Config;
-using GPSS_Client.Services;
-using System.ComponentModel;
-using System.Reflection;
-
 namespace GPSS_Client
 {
+    using GPSS_Client.Config;
+    using GPSS_Client.Services;
+    using System.ComponentModel;
+    using System.Reflection;
+
+    /// <summary>
+    /// Defines the <see cref="ConfigPage" />.
+    /// </summary>
     public partial class ConfigPage : ContentPage
     {
+        /// <summary>
+        /// Defines the _configHolder.
+        /// </summary>
         private readonly ConfigHolder _configHolder;
+
+        /// <summary>
+        /// Defines the _config.
+        /// </summary>
         private readonly ClientConfig _config;
+
+        /// <summary>
+        /// Defines the _serviceProvider.
+        /// </summary>
         private readonly IServiceProvider _serviceProvider;
+
+        /// <summary>
+        /// Defines the _propertyInputs.
+        /// </summary>
         private readonly Dictionary<string, View> _propertyInputs = [];
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigPage"/> class.
+        /// </summary>
+        /// <param name="configHolder">The configHolder<see cref="ConfigHolder"/>.</param>
+        /// <param name="serviceProvider">The serviceProvider<see cref="IServiceProvider"/>.</param>
         public ConfigPage(ConfigHolder configHolder, IServiceProvider serviceProvider)
         {
             InitializeComponent();
@@ -22,6 +45,9 @@ namespace GPSS_Client
             RenderConfigOptions();
         }
 
+        /// <summary>
+        /// The RenderConfigOptions.
+        /// </summary>
         private void RenderConfigOptions()
         {
             DynamicConfigStack.Children.Clear();
@@ -64,6 +90,11 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The OnSaveClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnSaveClicked(object sender, EventArgs e)
         {
             var props = typeof(ClientConfig).GetProperties(BindingFlags.Public | BindingFlags.Instance);

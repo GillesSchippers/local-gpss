@@ -1,22 +1,50 @@
-﻿using CommunityToolkit.Maui.Storage;
-using GPSS_Client.Config;
-using GPSS_Client.Models;
-using GPSS_Client.Services;
-using GPSS_Client.Utils;
-using Microsoft.Extensions.Logging;
-
-namespace GPSS_Client
+﻿namespace GPSS_Client
 {
+    using CommunityToolkit.Maui.Storage;
+    using GPSS_Client.Config;
+    using GPSS_Client.Models;
+    using GPSS_Client.Services;
+    using GPSS_Client.Utils;
+    using Microsoft.Extensions.Logging;
+
+    /// <summary>
+    /// Defines the <see cref="MainPage" />.
+    /// </summary>
     public partial class MainPage : ContentPage
     {
+        /// <summary>
+        /// Defines the _configHolder.
+        /// </summary>
         private readonly ConfigHolder _configHolder;
+
+        /// <summary>
+        /// Defines the _logger.
+        /// </summary>
         private readonly ILogger<MainPage> _logger;
+
+        /// <summary>
+        /// Defines the _api.
+        /// </summary>
         private readonly ApiService _api;
+
+        /// <summary>
+        /// Defines the _config.
+        /// </summary>
         private ClientConfig _config;
 
+        /// <summary>
+        /// Defines the currentPage.
+        /// </summary>
         private int currentPage = 1;
+
+        /// <summary>
+        /// Defines the pageSize.
+        /// </summary>
         private const int pageSize = 30;
 
+        /// <summary>
+        /// Defines the PkFileType.
+        /// </summary>
         private static readonly FilePickerFileType PkFileType = new(new Dictionary<DevicePlatform, IEnumerable<string>> // Future proofing for new platforms
         {
             { DevicePlatform.WinUI, new[] { ".pk1", ".pk2", ".pk3", ".pk4", ".pk5", ".pk6", ".pk7", ".pk8" } },
@@ -25,12 +53,21 @@ namespace GPSS_Client
             { DevicePlatform.Android, new[] { "application/octet-stream" } }, // Android: filter after selection
         });
 
+        /// <summary>
+        /// Defines the PkPickOptions.
+        /// </summary>
         private static readonly PickOptions PkPickOptions = new()
         {
             PickerTitle = "Select Pokémon PKM file(s)",
             FileTypes = PkFileType
         };
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MainPage"/> class.
+        /// </summary>
+        /// <param name="configHolder">The configHolder<see cref="ConfigHolder"/>.</param>
+        /// <param name="api">The api<see cref="ApiService"/>.</param>
+        /// <param name="logger">The logger<see cref="ILogger{MainPage}"/>.</param>
         public MainPage(ConfigHolder configHolder, ApiService api, ILogger<MainPage> logger)
         {
             InitializeComponent();
@@ -44,14 +81,23 @@ namespace GPSS_Client
 
 #pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             SearchAsync();
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
+        /// <summary>
+        /// The OnConfigChanged.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object?"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private void OnConfigChanged(object? sender, EventArgs e)
         {
             _config = _configHolder.Config;
         }
 
+        /// <summary>
+        /// The OnUploadPokemonClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnUploadPokemonClicked(object sender, EventArgs e)
         {
             try
@@ -146,6 +192,11 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The OnCheckLegalityClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnCheckLegalityClicked(object sender, EventArgs e)
         {
             try
@@ -222,6 +273,11 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The OnLegalizePokemonClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnLegalizePokemonClicked(object sender, EventArgs e)
         {
             try
@@ -311,6 +367,11 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The OnNextPageClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnNextPageClicked(object sender, EventArgs e)
         {
             _logger.LogDebug("Next page button clicked. Current page: {CurrentPage}", currentPage);
@@ -341,6 +402,11 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The OnPreviousPageClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnPreviousPageClicked(object sender, EventArgs e)
         {
             _logger.LogDebug("Previous page button clicked. Current page: {CurrentPage}", currentPage);
@@ -378,6 +444,11 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The OnDownloadSinglePokemonClicked.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private async void OnDownloadSinglePokemonClicked(object sender, EventArgs e)
         {
             if (sender is Button btn && btn.BindingContext is PokemonInfoDisplay poke)
@@ -419,6 +490,10 @@ namespace GPSS_Client
             }
         }
 
+        /// <summary>
+        /// The SearchAsync.
+        /// </summary>
+        /// <returns>The <see cref="Task"/>.</returns>
         private async Task SearchAsync()
         {
             _logger.LogDebug("Performing Pokémon search. Page: {CurrentPage}, PageSize: {PageSize}", currentPage, pageSize);
@@ -484,6 +559,15 @@ namespace GPSS_Client
         }
 
         // Ensures DisplayAlert always works and shows all text
+
+        /// <summary>
+        /// The ShowAlert.
+        /// </summary>
+        /// <param name="title">The title<see cref="string"/>.</param>
+        /// <param name="message">The message<see cref="string"/>.</param>
+        /// <param name="accept">The accept<see cref="string"/>.</param>
+        /// <param name="cancel">The cancel<see cref="string?"/>.</param>
+        /// <returns>The <see cref="Task{bool}"/>.</returns>
         private async Task<bool> ShowAlert(string title, string message, string accept, string? cancel = null)
         {
             _logger.LogDebug("Showing alert. Title: {Title}, Accept: {Accept}, Cancel: {Cancel}", title, accept, cancel);

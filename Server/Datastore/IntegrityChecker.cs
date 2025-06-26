@@ -1,13 +1,24 @@
-using GPSS_Server.Utils;
-using Microsoft.EntityFrameworkCore;
-using PKHeX.Core;
-
 namespace GPSS_Server.Datastore
 {
+    using GPSS_Server.Utils;
+    using Microsoft.EntityFrameworkCore;
+    using PKHeX.Core;
+
+    /// <summary>
+    /// Defines the <see cref="IntegrityChecker" />.
+    /// </summary>
     public class IntegrityChecker(IServiceProvider services, ILogger<IntegrityChecker> logger) : BackgroundService
     {
+        /// <summary>
+        /// Defines the _interval.
+        /// </summary>
         private readonly TimeSpan _interval = TimeSpan.FromDays(1);
 
+        /// <summary>
+        /// The ExecuteAsync.
+        /// </summary>
+        /// <param name="stoppingToken">The stoppingToken<see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -17,6 +28,11 @@ namespace GPSS_Server.Datastore
             }
         }
 
+        /// <summary>
+        /// The CheckAllPokemonAsync.
+        /// </summary>
+        /// <param name="cancellationToken">The cancellationToken<see cref="CancellationToken"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
         private async Task CheckAllPokemonAsync(CancellationToken cancellationToken)
         {
             using var scope = services.CreateScope();

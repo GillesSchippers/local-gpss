@@ -1,18 +1,41 @@
-using GPSS_Client.Config;
-using GPSS_Client.Models;
-using Microsoft.Extensions.Logging;
-using System.Text;
-using System.Text.Json;
-
 namespace GPSS_Client.Services
 {
+    using GPSS_Client.Config;
+    using GPSS_Client.Models;
+    using Microsoft.Extensions.Logging;
+    using System.Text;
+    using System.Text.Json;
+
+    /// <summary>
+    /// Defines the <see cref="ApiService" />.
+    /// </summary>
     public class ApiService
     {
+        /// <summary>
+        /// Defines the _configHolder.
+        /// </summary>
         private readonly ConfigHolder _configHolder;
+
+        /// <summary>
+        /// Defines the _logger.
+        /// </summary>
         private readonly ILogger<ApiService> _logger;
+
+        /// <summary>
+        /// Defines the _httpClient.
+        /// </summary>
         private readonly HttpClient _httpClient;
+
+        /// <summary>
+        /// Defines the _config.
+        /// </summary>
         private ClientConfig _config;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ApiService"/> class.
+        /// </summary>
+        /// <param name="configHolder">The configHolder<see cref="ConfigHolder"/>.</param>
+        /// <param name="logger">The logger<see cref="ILogger{ApiService}"/>.</param>
         public ApiService(ConfigHolder configHolder, ILogger<ApiService> logger)
         {
             _configHolder = configHolder;
@@ -30,12 +53,23 @@ namespace GPSS_Client.Services
             _configHolder.ConfigChanged += OnConfigChanged;
         }
 
+        /// <summary>
+        /// The OnConfigChanged.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object?"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private void OnConfigChanged(object? sender, EventArgs e)
         {
             _config = _configHolder.Config;
             _httpClient.BaseAddress = new Uri(_config.ApiUrl.TrimEnd('/'));
         }
 
+        /// <summary>
+        /// The CheckLegalityAsync.
+        /// </summary>
+        /// <param name="pkmnFile">The pkmnFile<see cref="Stream"/>.</param>
+        /// <param name="generation">The generation<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{LegalityCheckResult?}"/>.</returns>
         public async Task<LegalityCheckResult?> CheckLegalityAsync(Stream pkmnFile, string generation)
         {
             try
@@ -62,6 +96,13 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The LegalizeAsync.
+        /// </summary>
+        /// <param name="pkmnFile">The pkmnFile<see cref="Stream"/>.</param>
+        /// <param name="generation">The generation<see cref="string"/>.</param>
+        /// <param name="version">The version<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{LegalizeResult?}"/>.</returns>
         public async Task<LegalizeResult?> LegalizeAsync(Stream pkmnFile, string generation, string version)
         {
             try
@@ -89,6 +130,14 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The SearchAsync.
+        /// </summary>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        /// <param name="searchBody">The searchBody<see cref="object?"/>.</param>
+        /// <param name="page">The page<see cref="int"/>.</param>
+        /// <param name="amount">The amount<see cref="int"/>.</param>
+        /// <returns>The <see cref="Task{SearchResult?}"/>.</returns>
         public async Task<SearchResult?> SearchAsync(string entityType, object? searchBody = null, int page = 1, int amount = 30)
         {
             try
@@ -113,6 +162,12 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The UploadPokemonAsync.
+        /// </summary>
+        /// <param name="pkmnFile">The pkmnFile<see cref="Stream"/>.</param>
+        /// <param name="generation">The generation<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{UploadResult?}"/>.</returns>
         public async Task<UploadResult?> UploadPokemonAsync(Stream pkmnFile, string generation)
         {
             try
@@ -139,6 +194,12 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The UploadBundleAsync.
+        /// </summary>
+        /// <param name="pkmnFiles">The pkmnFiles<see cref="List{Stream}"/>.</param>
+        /// <param name="generations">The generations<see cref="List{string}"/>.</param>
+        /// <returns>The <see cref="Task{UploadResult?}"/>.</returns>
         public async Task<UploadResult?> UploadBundleAsync(List<Stream> pkmnFiles, List<string> generations)
         {
             try
@@ -170,6 +231,12 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The DownloadPokemonAsync.
+        /// </summary>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <param name="download">The download<see cref="bool"/>.</param>
+        /// <returns>The <see cref="Task{PokemonDownloadResult?}"/>.</returns>
         public async Task<PokemonDownloadResult?> DownloadPokemonAsync(string code, bool download = true)
         {
             try
@@ -191,6 +258,12 @@ namespace GPSS_Client.Services
             }
         }
 
+        /// <summary>
+        /// The DownloadBundleAsync.
+        /// </summary>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <param name="download">The download<see cref="bool"/>.</param>
+        /// <returns>The <see cref="Task{BundleDownloadResult?}"/>.</returns>
         public async Task<BundleDownloadResult?> DownloadBundleAsync(string code, bool download = true)
         {
             try
