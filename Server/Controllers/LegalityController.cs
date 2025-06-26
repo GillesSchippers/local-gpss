@@ -1,3 +1,4 @@
+using GPSS_Server.Services;
 using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,7 +11,7 @@ namespace GPSS_Server.Controllers
         [HttpPost("legality")]
         public IActionResult Check([FromForm] IFormFile pkmn, [FromHeader] string generation)
         {
-            var result = Pkhex.LegalityCheck(pkmn, Helpers.EntityContextFromString(generation));
+            var result = PKhexService.LegalityCheck(pkmn, Helpers.EntityContextFromString(generation));
 
             if (Helpers.DoesPropertyExist(result, "error"))
             {
@@ -23,7 +24,7 @@ namespace GPSS_Server.Controllers
         [HttpPost("legalize")]
         public IActionResult Legalize([FromForm] IFormFile pkmn, [FromHeader] string generation, [FromHeader] string version)
         {
-            var result = Pkhex.Legalize(pkmn, Helpers.EntityContextFromString(generation),
+            var result = PKhexService.Legalize(pkmn, Helpers.EntityContextFromString(generation),
                 Helpers.GameVersionFromString(version));
 
             if (Helpers.DoesPropertyExist(result, "error"))

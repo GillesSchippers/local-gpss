@@ -1,3 +1,4 @@
+using GPSS_Server.Config;
 using GPSS_Server.Models;
 using GPSS_Server.Utils;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,19 @@ namespace GPSS_Server.Datastore
                 .WithMany(b => b.BundlePokemons)
                 .HasForeignKey(bp => bp.BundleId)
                 .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
+    public static class DatabaseServiceExtensions
+    {
+        public static IServiceCollection AddGpssDatabase(this IServiceCollection services, ServerConfig config)
+        {
+            var connectionString = $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};";
+            services.AddDbContext<GpssDbContext>(options =>
+                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+            );
+            services.AddScoped<Database>();
+            return services;
         }
     }
 

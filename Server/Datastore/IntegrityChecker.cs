@@ -1,8 +1,8 @@
-using GPSS_Server.Datastore;
+using GPSS_Server.Utils;
 using Microsoft.EntityFrameworkCore;
 using PKHeX.Core;
 
-namespace GPSS_Server.Utils
+namespace GPSS_Server.Datastore
 {
     public class IntegrityChecker(IServiceProvider services, ILogger<IntegrityChecker> logger) : BackgroundService
     {

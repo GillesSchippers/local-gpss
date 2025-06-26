@@ -20,9 +20,12 @@ namespace GPSS_Server.Models
 
     public struct GpssBundlePokemon()
     {
-        [JsonPropertyName("legality")] public bool Legal { get; set; }
-        [JsonPropertyName("base_64")] public string Base64 { get; set; }
-        [JsonPropertyName("generation")] public string Generation { get; set; }
+        [JsonPropertyName("legality")]
+        public bool Legal { get; set; }
+        [JsonPropertyName("base_64")]
+        public string Base64 { get; set; }
+        [JsonPropertyName("generation")]
+        public string Generation { get; set; }
     }
 
     public struct GpssBundle()
@@ -38,14 +41,20 @@ namespace GPSS_Server.Models
             DownloadCode = data["download_code"];
         }
 
-        [JsonPropertyName("pokemons")] public List<GpssBundlePokemon> Pokemons { get; set; }
-        [JsonPropertyName("download_codes")] public List<string> DownloadCodes { get; set; }
-        [JsonPropertyName("download_code")] public string DownloadCode { get; set; }
-        [JsonPropertyName("patreon")] public bool Patreon { get; } = false;
-        [JsonPropertyName("min_gen")] public string MinGen { get; set; }
-        [JsonPropertyName("max_gen")] public string MaxGen { get; set; }
-        [JsonPropertyName("count")] public int Count { get; set; }
-        [JsonPropertyName("legal")] public bool Legality { get; set; }
+        [JsonPropertyName("pokemons")]
+        public List<GpssBundlePokemon> Pokemons { get; set; }
+        [JsonPropertyName("download_codes")]
+        public List<string> DownloadCodes { get; set; }
+        [JsonPropertyName("download_code")]
+        public string DownloadCode { get; set; }
+        [JsonPropertyName("min_gen")]
+        public string MinGen { get; set; }
+        [JsonPropertyName("max_gen")]
+        public string MaxGen { get; set; }
+        [JsonPropertyName("count")]
+        public int Count { get; set; }
+        [JsonPropertyName("legal")]
+        public bool Legality { get; set; }
     }
 
     public struct Search

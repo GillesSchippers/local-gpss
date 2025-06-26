@@ -1,10 +1,11 @@
 using GPSS_Server.Models;
+using GPSS_Server.Utils;
 using PKHeX.Core;
 using PKHeX.Core.AutoMod;
 
-namespace GPSS_Server.Utils
+namespace GPSS_Server.Services
 {
-    public class Pkhex
+    public class PKhexService
     {
         public static dynamic LegalityCheck(IFormFile pokemon, EntityContext? context)
         {

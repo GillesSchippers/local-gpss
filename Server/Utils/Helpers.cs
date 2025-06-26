@@ -4,7 +4,6 @@ using PKHeX.Core;
 using PKHeX.Core.AutoMod;
 using System.Dynamic;
 using System.Net;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Security.Principal;
@@ -15,11 +14,11 @@ namespace GPSS_Server.Utils
 {
     public static class Helpers
     {
-        public static bool Init(ILogger logger)
+        public static bool Init()
         {
             if (IsRunningAsAdminOrRoot())
             {
-                logger.LogError("Running this application as administrator or root is not supported. Please run as a standard user.");
+                Console.WriteLine("Error: Running this application as administrator or root is not supported. Please run as a standard user.");
                 Environment.Exit(1);
             }
 
@@ -154,43 +153,16 @@ namespace GPSS_Server.Utils
             return obj.GetType().GetProperty(name) != null;
         }
 
-        public static List<string> GetLocalIPs()
-        {
-            if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
-            {
-                throw new Exception("No network connection detected. Please ensure the system is connected to a network.");
-            }
-
-            var host = Dns.GetHostEntry(Dns.GetHostName());
-            var ips = new List<string>();
-            foreach (var ip in host.AddressList)
-            {
-                if (ip.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    ips.Add(ip.ToString());
-                }
-            }
-
-            if (ips.Count == 0)
-            {
-                throw new Exception("No IPv4 network interfaces found on this system.");
-            }
-
-            return ips;
-        }
-
-        public static bool CanBindToPort(int port)
+        public static IPAddress? GetAdressFromString(string address)
         {
             try
             {
-                using TcpListener listener = new(IPAddress.Any, port);
-                listener.Start();
-                listener.Stop();
-                return true;
+                IPAddress[] resolvedAddresses = Dns.GetHostAddresses(address);
+                return resolvedAddresses.Length > 0 ? resolvedAddresses[0] : null;
             }
-            catch (SocketException)
+            catch (Exception)
             {
-                return false;
+                return null;
             }
         }
 
