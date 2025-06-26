@@ -10,9 +10,9 @@ namespace GPSS_Client
     public partial class MainPage : ContentPage
     {
         private readonly ConfigHolder _configHolder;
-        private ClientConfig _config;
-        private ILogger<MainPage> _logger;
+        private readonly ILogger<MainPage> _logger;
         private readonly ApiService _api;
+        private ClientConfig _config;
 
         private int currentPage = 1;
         private const int pageSize = 30;
@@ -42,7 +42,9 @@ namespace GPSS_Client
             // Subscribe to config changes
             _configHolder.ConfigChanged += OnConfigChanged;
 
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
             SearchAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         }
 
         private void OnConfigChanged(object? sender, EventArgs e)

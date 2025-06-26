@@ -4,6 +4,7 @@
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
     xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+    xmlns:models="clr-namespace:GPSS_Client.Models"
     BackgroundColor="{DynamicResource PageBackgroundColor}">
 
     <ContentPage.ToolbarItems>
@@ -26,7 +27,7 @@
                             VerticalOptions="FillAndExpand"
                             HorizontalOptions="FillAndExpand">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate>
+                    <DataTemplate x:DataType="models:PokemonInfoDisplay">
                         <Border
                             Stroke="{DynamicResource CardBorderColor}"
                             StrokeThickness="1"
@@ -37,22 +38,22 @@
                             <Grid ColumnDefinitions="*,Auto">
                                 <!-- Info Column -->
                                 <VerticalStackLayout Grid.Column="0" Spacing="4">
-                                    <Label Text="{Binding Nickname}" FontAttributes="Bold" FontSize="18"/>
+                                    <Label Text="{Binding Nickname}" FontAttributes="Bold" FontSize="18" x:DataType="models:PokemonInfoDisplay"/>
                                     <HorizontalStackLayout Spacing="12">
-                                        <Label Text="{Binding Species, StringFormat='Species: {0}'}" FontSize="14"/>
-                                        <Label Text="{Binding Level, StringFormat='Lv. {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding Species, StringFormat='Species: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
+                                        <Label Text="{Binding Level, StringFormat='Lv. {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
                                     </HorizontalStackLayout>
                                     <HorizontalStackLayout Spacing="12">
-                                        <Label Text="{Binding OT, StringFormat='OT: {0}'}" FontSize="14"/>
-                                        <Label Text="{Binding SID, StringFormat='SID: {0}'}" FontSize="14"/>
-                                        <Label Text="{Binding TID, StringFormat='TID: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding OT, StringFormat='OT: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
+                                        <Label Text="{Binding SID, StringFormat='SID: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
+                                        <Label Text="{Binding TID, StringFormat='TID: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
                                     </HorizontalStackLayout>
                                     <HorizontalStackLayout Spacing="12">
-                                        <Label Text="{Binding IsShiny, StringFormat='Shiny: {0}'}" FontSize="14"/>
-                                        <Label Text="{Binding Legal, StringFormat='Legal: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding IsShiny, StringFormat='Shiny: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
+                                        <Label Text="{Binding Legal, StringFormat='Legal: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
                                     </HorizontalStackLayout>
                                     <HorizontalStackLayout Spacing="12">
-                                        <Label Text="{Binding Generation, StringFormat='Gen: {0}'}" FontSize="14"/>
+                                        <Label Text="{Binding Generation, StringFormat='Gen: {0}'}" FontSize="14" x:DataType="models:PokemonInfoDisplay"/>
                                     </HorizontalStackLayout>
                                 </VerticalStackLayout>
                                 <!-- Download Button Column -->

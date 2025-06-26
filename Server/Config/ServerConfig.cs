@@ -24,9 +24,9 @@ namespace GPSS_Server.Config
         [JsonPropertyName("mysql_port")]
         public int MySqlPort { get; set; } = 3306;
         [JsonPropertyName("mysql_user")]
-        public string MySqlUser { get; set; } = "gpss";
+        public string MySqlUser { get; set; } = string.Empty;
         [JsonPropertyName("mysql_password")]
-        public string MySqlPassword { get; set; } = "";
+        public string MySqlPassword { get; set; } = string.Empty;
         [JsonPropertyName("mysql_database")]
         public string MySqlDatabase { get; set; } = "gpss";
     }
