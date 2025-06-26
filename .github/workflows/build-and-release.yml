@@ -81,6 +81,7 @@ jobs:
           dotnet publish "$PROJECT_PATH" -c Release -o ./output/${{ matrix.output }}-${{ matrix.project }} --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
+            -p:DebugType=None -p:DebugSymbols=false \
             -r ${{ matrix.arch }} $FRAMEWORK
 
       - name: Set execute permissions (Linux/macOS)
