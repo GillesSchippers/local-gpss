@@ -35,6 +35,11 @@
         private ClientConfig _config;
 
         /// <summary>
+        /// Defines the _searchRefreshCts.
+        /// </summary>
+        private CancellationTokenSource? _searchRefreshCts;
+
+        /// <summary>
         /// Defines the currentBox.
         /// </summary>
         private int currentBox = 1;
@@ -81,8 +86,19 @@
             // Subscribe to config changes
             _configHolder.ConfigChanged += OnConfigChanged;
 
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-            SearchAsync();
+            _searchRefreshCts = new CancellationTokenSource();
+            StartPeriodicSearchRefresh(_searchRefreshCts.Token);
+        }
+
+        /// <summary>
+        /// The OnDisappearing.
+        /// </summary>
+        protected override void OnDisappearing()
+        {
+            base.OnDisappearing();
+            _searchRefreshCts?.Cancel();
+            _searchRefreshCts?.Dispose();
+            _searchRefreshCts = null;
         }
 
         /// <summary>
@@ -93,6 +109,23 @@
         private void OnConfigChanged(object? sender, EventArgs e)
         {
             _config = _configHolder.Config;
+        }
+
+        /// <summary>
+        /// The StartPeriodicSearchRefresh.
+        /// </summary>
+        /// <param name="token">The token<see cref="CancellationToken"/>.</param>
+        private async void StartPeriodicSearchRefresh(CancellationToken token)
+        {
+            try
+            {
+                while (!token.IsCancellationRequested)
+                {
+                    await PollForSearchUpdateAsync(5, 30);
+                    await Task.Delay(TimeSpan.FromSeconds(30), token);
+                }
+            }
+            catch (TaskCanceledException) { /* Ignore */ }
         }
 
         /// <summary>
@@ -184,8 +217,6 @@
                         await ShowAlert("Upload Failed", "Unknown error", "OK");
                     }
                 }
-
-                await SearchAsync();
             }
             catch (Exception ex)
             {
@@ -394,9 +425,8 @@
             if (result.Pokemon != null && result.Pokemon.Count > 0)
             {
                 currentBox = nextBox;
-                ResultsView.ItemsSource = result.Pokemon;
-                BoxLabel.Text = $"Box {currentBox}";
-                _logger.LogInformation("Box changed to {CurrentBox}", currentBox);
+                bool changed = await UpdateGuiAsync(result);
+                _logger.LogInformation("Box changed to {CurrentBox}. Changed: {Changed}", currentBox, changed);
             }
             else
             {
@@ -431,9 +461,8 @@
                 if (result.Pokemon != null && result.Pokemon.Count > 0)
                 {
                     currentBox = prevBox;
-                    ResultsView.ItemsSource = result.Pokemon;
-                    BoxLabel.Text = $"Box {currentBox}";
-                    _logger.LogInformation("Box changed to {CurrentBox}", currentBox);
+                    bool changed = await UpdateGuiAsync(result);
+                    _logger.LogInformation("Box changed to {CurrentBox}. Changed: {Changed}", currentBox, changed);
                 }
                 else
                 {
@@ -585,8 +614,6 @@
                         stream.Dispose();
                     }
                 }
-
-                await SearchAsync();
             }
             catch (Exception ex)
             {
@@ -596,27 +623,13 @@
         }
 
         /// <summary>
-        /// The SearchAsync.
+        /// The UpdateGuiAsync.
         /// </summary>
-        /// <returns>The <see cref="Task"/>.</returns>
-        private async Task SearchAsync()
+        /// <param name="result">The result<see cref="SearchResult"/>.</param>
+        /// <returns>The <see cref="Task{bool}"/>.</returns>
+        private async Task<bool> UpdateGuiAsync(SearchResult result)
         {
-            _logger.LogDebug("Performing Pokémon search. Box: {CurrentBox}, BoxSize: {BoxSize}", currentBox, boxSize);
-            var result = await _api.SearchAsync("pokemon", null, currentBox, boxSize);
-            if (result == null)
-            {
-                _logger.LogError("Search failed: API returned null.");
-                await ShowAlert("Error", "Could not connect to server.", "OK");
-                return;
-            }
-            if (!string.IsNullOrEmpty(result.Error))
-            {
-                _logger.LogError("Search error: {Error}", result.Error);
-                await ShowAlert("Error", result.Error, "OK");
-                return;
-            }
-
-            var displayList = new List<PokemonInfoDisplay>();
+            var newDisplayList = new List<PokemonInfoDisplay>();
 
             if (result.Pokemon != null)
             {
@@ -640,30 +653,57 @@
                                 Legal = poke.Legal,
                                 Code = poke.Code
                             };
-                            displayList.Add(display);
+                            newDisplayList.Add(display);
                         }
-                        else
-                        {
-                            _logger.LogWarning("Failed to parse Pokémon info from Base64 for code {Code}", poke.Code);
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Pokémon entry with code {Code} has no Base64 data.", poke.Code);
                     }
                 }
-                ResultsView.ItemsSource = null; // Force redraw
-                ResultsView.ItemsSource = displayList;
-                _logger.LogInformation("Search results updated. Count: {Count}", displayList.Count);
             }
-            else
+
+            // Get current codes for change detection
+            var currentCodes = (ResultsView.ItemsSource as IEnumerable<PokemonInfoDisplay>)?
+                .Select(p => p.Code)
+                .ToList() ?? new List<string>();
+            var newCodes = newDisplayList.Select(p => p.Code).ToList();
+
+            bool changed = !currentCodes.SequenceEqual(newCodes);
+
+            if (changed)
             {
-                _logger.LogInformation("No Pokémon found in search results.");
+                ResultsView.ItemsSource = null;
+                ResultsView.ItemsSource = newDisplayList;
+                BoxLabel.Text = $"Box {currentBox}";
+                _logger.LogInformation("Search results updated. Count: {Count}", newDisplayList.Count);
             }
-            BoxLabel.Text = $"Box {currentBox}";
+
+            await Task.CompletedTask;
+            return changed;
         }
 
-        // Ensures DisplayAlert always works and shows all text
+        /// <summary>
+        /// The PollForSearchUpdateAsync.
+        /// </summary>
+        /// <param name="intervalSeconds">The intervalSeconds<see cref="int"/>.</param>
+        /// <param name="timeoutSeconds">The timeoutSeconds<see cref="int"/>.</param>
+        /// <returns>The <see cref="Task"/>.</returns>
+        private async Task PollForSearchUpdateAsync(int intervalSeconds = 2, int timeoutSeconds = 20)
+        {
+            var start = DateTime.UtcNow;
+
+            while (true)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(intervalSeconds));
+
+                var result = await _api.SearchAsync("pokemon", null, currentBox, boxSize);
+                if (result == null || result.Pokemon == null)
+                    continue;
+
+                if (await UpdateGuiAsync(result))
+                    break;
+
+                if ((DateTime.UtcNow - start).TotalSeconds > timeoutSeconds)
+                    break;
+            }
+        }
 
         /// <summary>
         /// The ShowAlert.
