@@ -4,6 +4,7 @@ namespace GPSS_Server.Controllers
     using GPSS_Server.Models;
     using GPSS_Server.Utils;
     using Microsoft.AspNetCore.Mvc;
+    using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
     using System.Text.Json;
 
@@ -12,7 +13,7 @@ namespace GPSS_Server.Controllers
     /// </summary>
     [ApiController]
     [Route("/api/v2/gpss")]
-    public class GpssController(Database database) : ControllerBase
+    public class GpssController(Database database, IMemoryCache cache) : ControllerBase
     {
         /// <summary>
         /// Defines the _supportedEntities.
@@ -34,32 +35,42 @@ namespace GPSS_Server.Controllers
             if (!_supportedEntities.Contains(entityType))
                 return BadRequest(new { message = "Invalid entity type." });
 
-            Search? search = null;
-            if (searchBody.HasValue) search = Helpers.SearchTranslation(searchBody.Value);
-
-            int count;
-            object items;
-            if (entityType == "pokemon")
+            string cacheKey = $"{entityType}:{page}:{amount}:{searchBody?.ToString() ?? ""}";
+            if (!cache.TryGetValue(cacheKey, out Dictionary<string, object>? result))
             {
-                count = await database.CountAsync("pokemon");
-                items = await database.ListPokemonsAsync(page, amount, search);
+                Search? search = null;
+                if (searchBody.HasValue) search = Helpers.SearchTranslation(searchBody.Value);
+
+                int count;
+                object items;
+                if (entityType == "pokemon")
+                {
+                    count = await database.CountAsync("pokemon");
+                    items = await database.ListPokemonsAsync(page, amount, search);
+                }
+                else
+                {
+                    count = await database.CountAsync("bundle");
+                    items = await database.ListBundlesAsync(page, amount, search);
+                }
+
+                var pages = count != 0 ? Math.Ceiling((double)count / amount) : 1;
+                if (pages == 0) pages = 1;
+
+                result = new Dictionary<string, object>
+                {
+                    { "page", page },
+                    { "pages", pages },
+                    { "total", count },
+                    { entityType, items }
+                };
+                cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+                {
+                    Size = Helpers.GetObjectSizeInBytes(result),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(30)
+                });
             }
-            else
-            {
-                count = await database.CountAsync("bundle");
-                items = await database.ListBundlesAsync(page, amount, search);
-            }
-
-            var pages = count != 0 ? Math.Ceiling((double)count / amount) : 1;
-            if (pages == 0) pages = 1;
-
-            return Ok(new Dictionary<string, object>
-            {
-                { "page", page },
-                { "pages", pages },
-                { "total", count },
-                { entityType, items }
-            });
+            return Ok(result);
         }
 
         /// <summary>
@@ -89,17 +100,35 @@ namespace GPSS_Server.Controllers
                 if (payload.pokemon == null)
                     return BadRequest(new { error = "not a pokemon" });
 
+                var hash = GPSS_Server.Utils.Helpers.ComputeSha256Hash(payload.base64);
+                string cacheKey = $"upload:pokemon:{hash}";
+
+                if (cache.TryGetValue(cacheKey, out string? cachedCode) && !string.IsNullOrEmpty(cachedCode))
+                {
+                    return Ok(new { code = cachedCode });
+                }
+
                 long? id = await database.GetPokemonIdAsync(payload.base64);
                 if (id.HasValue)
                 {
-                    // Fetch the download code for the existing Pokémon
-                    var code = await database.GetPokemonDownloadCodeAsync(payload.base64);
+                    string? code = await database.GetPokemonDownloadCodeAsync(payload.base64);
+                    cache.Set(cacheKey, code, new MemoryCacheEntryOptions
+                    {
+                        Size = Helpers.GetObjectSizeInBytes(code),
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                    });
                     return Ok(new { code });
                 }
 
                 var legality = new LegalityAnalysis(payload.pokemon);
                 var newCode = await Helpers.GenerateDownloadCodeAsync(database, "pokemon");
                 await database.InsertPokemonAsync(payload.base64, legality.Valid, newCode, generation!);
+                Helpers.InvalidateSearchCacheAsync(cache, entityType);
+                cache.Set(cacheKey, newCode, new MemoryCacheEntryOptions
+                {
+                    Size = Helpers.GetObjectSizeInBytes(newCode),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                });
                 return Ok(new { code = newCode });
             }
 
@@ -109,12 +138,15 @@ namespace GPSS_Server.Controllers
             if (!headers.TryGetValue("generations", out var generationsStr)) return BadRequest(new { error = "missing generations header" });
 
             List<string> generations = [.. generationsStr.ToString().Split(',')];
+            List<string> pokemonHashes = [];
             List<long> ids = [];
             bool bundleLegal = true;
             EntityContext? minGen = null;
             EntityContext? maxGen = null;
 
             if (generations.Count != count) return BadRequest(new { error = "number of generations does not match" });
+
+            bool needsCacheInvalidation = false;
 
             for (var i = 0; i < count; i++)
             {
@@ -130,6 +162,9 @@ namespace GPSS_Server.Controllers
                 if (!maxGen.HasValue || (gen != EntityContext.None ? gen : payload.pokemon.Context) > maxGen.Value)
                     maxGen = gen != EntityContext.None ? gen : payload.pokemon.Context;
 
+                var hash = GPSS_Server.Utils.Helpers.ComputeSha256Hash(payload.base64);
+                pokemonHashes.Add(hash);
+
                 long? id = await database.GetPokemonIdAsync(payload.base64);
 
                 var legality = new LegalityAnalysis(payload.pokemon);
@@ -139,6 +174,12 @@ namespace GPSS_Server.Controllers
                 {
                     var code = await Helpers.GenerateDownloadCodeAsync(database, "pokemon");
                     id = await database.InsertPokemonAsync(payload.base64, legality.Valid, code, generations[i]);
+                    needsCacheInvalidation = true;
+                    cache.Set($"upload:pokemon:{hash}", code, new MemoryCacheEntryOptions
+                    {
+                        Size = Helpers.GetObjectSizeInBytes(code),
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                    });
                     ids.Add(id.Value);
                 }
                 else
@@ -147,12 +188,37 @@ namespace GPSS_Server.Controllers
                 }
             }
 
+            if (needsCacheInvalidation)
+                Helpers.InvalidateSearchCacheAsync(cache, "pokemon");
+
+            var bundleKeyRaw = string.Join(",", pokemonHashes);
+            var bundleKeyHash = GPSS_Server.Utils.Helpers.ComputeSha256Hash(bundleKeyRaw);
+            string bundleCacheKey = $"upload:bundle:{bundleKeyHash}";
+
+            if (cache.TryGetValue(bundleCacheKey, out string? cachedBundleCode) && !string.IsNullOrEmpty(cachedBundleCode))
+            {
+                return Ok(new { code = cachedBundleCode });
+            }
+
             var bundleCode = await database.CheckIfBundleExistsAsync(ids);
-            if (bundleCode != null) return Ok(new { code = bundleCode });
+            if (bundleCode != null)
+            {
+                cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
+                {
+                    Size = Helpers.GetObjectSizeInBytes(bundleCode),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                });
+                return Ok(new { code = bundleCode });
+            }
 
             bundleCode = await Helpers.GenerateDownloadCodeAsync(database, "bundle");
             await database.InsertBundleAsync(bundleLegal, bundleCode, ((int)minGen!.Value).ToString(), ((int)maxGen!.Value).ToString(), ids);
-
+            Helpers.InvalidateSearchCacheAsync(cache, "bundle");
+            cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
+            {
+                Size = Helpers.GetObjectSizeInBytes(bundleCode),
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+            });
             return Ok(new { code = bundleCode });
         }
 
@@ -179,18 +245,42 @@ namespace GPSS_Server.Controllers
             if (!download)
                 return Ok();
 
+            string cacheKey = $"download:{entityType}:{code}:download={download}";
+
             if (entityType == "pokemon")
             {
+                if (cache.TryGetValue(cacheKey, out GpssPokemon? cachedPokemon) && cachedPokemon != null)
+                {
+                    return Ok(cachedPokemon);
+                }
+
                 var pokemon = (await database.ListPokemonsAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
                 if (string.IsNullOrEmpty(pokemon.DownloadCode))
                     return NotFound(new { message = "Pokemon not found." });
+
+                cache.Set(cacheKey, pokemon, new MemoryCacheEntryOptions
+                {
+                    Size = Helpers.GetObjectSizeInBytes(pokemon),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
+                });
                 return Ok(pokemon);
             }
             else
             {
+                if (cache.TryGetValue(cacheKey, out GpssBundle? cachedBundle) && cachedBundle != null)
+                {
+                    return Ok(cachedBundle);
+                }
+
                 var bundle = (await database.ListBundlesAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
                 if (string.IsNullOrEmpty(bundle.DownloadCode))
                     return NotFound(new { message = "Bundle not found." });
+
+                cache.Set(cacheKey, bundle, new MemoryCacheEntryOptions
+                {
+                    Size = Helpers.GetObjectSizeInBytes(bundle),
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(1)
+                });
                 return Ok(bundle);
             }
         }

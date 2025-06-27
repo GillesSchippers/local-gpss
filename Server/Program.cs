@@ -1,5 +1,6 @@
 using GPSS_Server.Config;
 using GPSS_Server.Datastore;
+using GPSS_Server.Datastore.Checks;
 using GPSS_Server.Services;
 using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -26,11 +27,14 @@ internal class Program
             var config = ConfigService.Load();
 
             builder.Services.AddSingleton<ConfigHolder>(sp => new ConfigHolder(config));
+            builder.Services.AddMemoryCache(options =>
+            {
+                options.SizeLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 3;
+            });
             builder.Services.AddGpssDatabase(config);
             builder.Services.AddControllers();
             builder.Services.AddHostedService<IntegrityChecker>();
 
-            // --- Kestrel endpoint configuration ---
             builder.WebHost.ConfigureKestrel(options =>
             {
 #if DEBUG

@@ -2,8 +2,12 @@ namespace GPSS_Server.Utils
 {
     using GPSS_Server.Datastore;
     using GPSS_Server.Models;
+    using MessagePack;
+    using MessagePack.Resolvers;
+    using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
     using PKHeX.Core.AutoMod;
+    using System.Collections;
     using System.Dynamic;
     using System.Net;
     using System.Runtime.InteropServices;
@@ -251,6 +255,90 @@ namespace GPSS_Server.Utils
         {
             var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawData));
             return Convert.ToHexString(bytes).ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// The ComputeSha256Hash.
+        /// </summary>
+        /// <param name="file">The file<see cref="IFormFile"/>.</param>
+        /// <returns>The <see cref="string"/>.</returns>
+        public static string ComputeSha256Hash(IFormFile file)
+        {
+            using var stream = file.OpenReadStream();
+            var hash = SHA256.HashData(stream);
+            return Convert.ToHexString(hash).ToLowerInvariant();
+        }
+
+        /// <summary>
+        /// The GetObjectSizeInBytes.
+        /// </summary>
+        /// <param name="obj">The obj<see cref="object"/>.</param>
+        /// <returns>The <see cref="int"/>.</returns>
+        public static int GetObjectSizeInBytes(object obj) =>
+            obj is null ? 0 :
+            MessagePackSerializer.Serialize(obj, MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance)).Length;
+
+        /// <summary>
+        /// The InvalidateSearchCache.
+        /// </summary>
+        /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        public static void InvalidateSearchCache(IMemoryCache cache, string entityType)
+        {
+            var keysToRemove = new List<object>();
+            var cacheField = typeof(MemoryCache).GetField("_entries", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            if (cacheField?.GetValue(cache) is IDictionary entries)
+            {
+                foreach (DictionaryEntry entry in entries)
+                {
+                    if (entry.Key is string key)
+                    {
+                        // Key format: "{entityType}:{page}:{amount}:{searchBody}"
+                        var parts = key.Split(':', 4);
+                        if (parts.Length < 4)
+                            continue;
+
+                        var keyEntityType = parts[0];
+                        var searchBody = parts[3];
+
+                        // Only consider search cache for the current entityType
+                        if (!string.Equals(keyEntityType, entityType, StringComparison.OrdinalIgnoreCase))
+                            continue;
+
+                        // Try to parse the searchBody as a Search object
+                        bool hasDownloadCode = false;
+                        if (!string.IsNullOrEmpty(searchBody) && searchBody != "{}")
+                        {
+                            try
+                            {
+                                var search = JsonSerializer.Deserialize<Search>(searchBody);
+                                hasDownloadCode = !string.IsNullOrEmpty(search.DownloadCode);
+                            }
+                            catch
+                            {
+                                // If parsing fails, treat as not having DownloadCode
+                                hasDownloadCode = false;
+                            }
+                        }
+
+                        // If it does NOT filter on download code, mark for removal
+                        if (!hasDownloadCode)
+                            keysToRemove.Add(entry.Key);
+                    }
+                }
+            }
+            foreach (var k in keysToRemove)
+                cache.Remove(k);
+        }
+
+        /// <summary>
+        /// The InvalidateSearchCacheAsync.
+        /// </summary>
+        /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        public static void InvalidateSearchCacheAsync(IMemoryCache cache, string entityType)
+        {
+            Task.Run(() => InvalidateSearchCache(cache, entityType));
         }
     }
 }

@@ -349,16 +349,7 @@ namespace GPSS_Server.Datastore
 
                 var downloadCodes = b.BundlePokemons.Select(bp => bp.Pokemon.DownloadCode).ToList();
 
-                var data = new Dictionary<string, dynamic>
-                {
-                    { "legal", b.Legal },
-                    { "download_count", b.DownloadCount },
-                    { "download_code", b.DownloadCode },
-                    { "min_gen", b.MinGen },
-                    { "max_gen", b.MaxGen }
-                };
-
-                return new GpssBundle(pokemons, downloadCodes, data);
+                return GpssBundle.Create(pokemons, downloadCodes, b.DownloadCode, b.MinGen, b.MaxGen, b.Legal);
             })];
         }
 

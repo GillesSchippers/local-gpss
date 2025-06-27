@@ -25,7 +25,7 @@ namespace GPSS_Server.Services
                     error = "not a pokemon!"
                 };
 
-            return new LegalityCheckReport(CheckLegality(pkmn));
+            return LegalityCheckReport.FromAnalysis(CheckLegality(pkmn));
         }
 
         /// <summary>
@@ -46,13 +46,13 @@ namespace GPSS_Server.Services
 
             var report = CheckLegality(pkmn);
             if (report.Valid)
-                return new AutoLegalizationResult(report, null, false);
+                return AutoLegalizationResult.FromAnalysis(report, null, false);
             ;
 
             var result = AutoLegalize(pkmn, version);
             if (result != null) report = CheckLegality(result);
 
-            return new AutoLegalizationResult(report, result, true);
+            return AutoLegalizationResult.FromAnalysis(report, result, true);
         }
 
         /// <summary>
