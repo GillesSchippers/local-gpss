@@ -34,8 +34,8 @@ jobs:
             output: "Windows (x64)"
             project: server
           - os: windows-latest
-            arch: "Windows (x64)"
-            output: win64
+            arch: "win-x64"
+            output: "Windows (x64)"
             project: client
       fail-fast: true
 
