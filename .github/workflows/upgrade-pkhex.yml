@@ -105,6 +105,7 @@ jobs:
         
       - name: Build GPSS
         shell: bash
+        id: gpss-build
         run: |
           dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
@@ -116,7 +117,6 @@ jobs:
             -p:EnableCompressionInSingleFile=true \
             -p:DebugType=None -p:DebugSymbols=false \
             -r "win-x64" -f "net9.0-windows10.0.19041.0"
-        id: gpss-build
      
   commit-and-push:
     needs: build
@@ -124,7 +124,7 @@ jobs:
     permissions:
       contents: write
       id-token: write
-    if: needs.build.outputs.gpss-build == 'success'
+    if: needs.build.result == 'success'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
