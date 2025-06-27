@@ -9,7 +9,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server", "Server", "{02EA68
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Client", "Client", "{5781CB55-4514-4DAC-BF44-653A70EF3FFA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPSS Client", "Client\GPSS Client\GPSS Client.csproj", "{5189C1C1-B19D-4592-BD61-ABDA832FE14C}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GPSS Client", "Client\GPSS Client.csproj", "{5189C1C1-B19D-4592-BD61-ABDA832FE14C}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{3736020B-A845-433D-BC2A-F152588134C4}"
 EndProject
@@ -23,7 +23,16 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Server", "Server", "{5A9FB7
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}"
 	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
 		README.md = README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".github", ".github", "{99014268-745F-4A16-B916-9ED66D77A681}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{AFB580BB-1BD6-4E5F-A29B-0300B74A79F8}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build-and-release.yml = .github\workflows\build-and-release.yml
+		.github\workflows\upgrade-pkhex.yml = .github\workflows\upgrade-pkhex.yml
 	EndProjectSection
 EndProject
 Global
@@ -46,9 +55,11 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{1890FCD4-CCBB-42B3-AA7E-9FA4503FC7FD} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
-		{CF3D4BCF-EF66-44B9-9071-E8111411AC40} = {3736020B-A845-433D-BC2A-F152588134C4}
 		{5189C1C1-B19D-4592-BD61-ABDA832FE14C} = {5781CB55-4514-4DAC-BF44-653A70EF3FFA}
+		{CF3D4BCF-EF66-44B9-9071-E8111411AC40} = {3736020B-A845-433D-BC2A-F152588134C4}
 		{5A9FB78E-DAAD-4F55-B516-D39ACB4834DE} = {CF3D4BCF-EF66-44B9-9071-E8111411AC40}
+		{99014268-745F-4A16-B916-9ED66D77A681} = {8EC462FD-D22E-90A8-E5CE-7E832BA40C5D}
+		{AFB580BB-1BD6-4E5F-A29B-0300B74A79F8} = {99014268-745F-4A16-B916-9ED66D77A681}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4F27F00B-DF09-4DC8-90B7-A6D6D11B0CC9}
