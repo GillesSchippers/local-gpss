@@ -108,12 +108,12 @@ jobs:
         
       - name: Build GPSS
         run: |
-          dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
+          dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -p:DebugType=None -p:DebugSymbols=false \
             -r "win-x64"
-          dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
+          dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -p:DebugType=None -p:DebugSymbols=false \
