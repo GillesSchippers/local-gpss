@@ -11,7 +11,7 @@ namespace GPSS_Server.Controllers
     /// </summary>
     [ApiController]
     [Route("/api/v2/pksm")]
-    public class LegalityController(ConfigHolder config, IMemoryCache cache, ILogger<LegalityController> logger) : ControllerBase
+    public class LegalityController(ConfigHolder config, IMemoryCache cache) : ControllerBase
     {
         /// <summary>
         /// The Check.
@@ -22,11 +22,9 @@ namespace GPSS_Server.Controllers
         [HttpPost("legality")]
         public IActionResult Check([FromForm] IFormFile pkmn, [FromHeader] string generation)
         {
-            logger.LogInformation("POST /api/v2/pksm/legality | Generation: {Generation} | File: {FileName} | Size: {Size}", generation, pkmn?.FileName, pkmn?.Length);
 
             if (pkmn == null || pkmn.Length == 0)
             {
-                logger.LogWarning("No file uploaded.");
                 return BadRequest(new { error = "No file uploaded." });
             }
 
@@ -35,7 +33,6 @@ namespace GPSS_Server.Controllers
 
             if (cache.TryGetValue(cacheKey, out object? cachedResult) && cachedResult != null)
             {
-                logger.LogInformation("Legality check served from cache for key: {CacheKey}", cacheKey);
                 return Ok(cachedResult);
             }
 
@@ -43,7 +40,6 @@ namespace GPSS_Server.Controllers
 
             if (Helpers.DoesPropertyExist(result, "error"))
             {
-                logger.LogWarning("Legality check failed: {Error}", (object)result.error ?? String.Empty);
                 return BadRequest(result);
             }
 
@@ -53,7 +49,6 @@ namespace GPSS_Server.Controllers
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
             });
 
-            logger.LogInformation("Legality check successful. Response cached under key: {CacheKey}", cacheKey);
             return Ok(result);
         }
 
@@ -67,11 +62,9 @@ namespace GPSS_Server.Controllers
         [HttpPost("legalize")]
         public IActionResult Legalize([FromForm] IFormFile pkmn, [FromHeader] string generation, [FromHeader] string version)
         {
-            logger.LogInformation("POST /api/v2/pksm/legalize | Generation: {Generation} | Version: {Version} | File: {FileName} | Size: {Size}", generation, version, pkmn?.FileName, pkmn?.Length);
 
             if (pkmn == null || pkmn.Length == 0)
             {
-                logger.LogWarning("No file uploaded.");
                 return BadRequest(new { error = "No file uploaded." });
             }
 
@@ -80,7 +73,6 @@ namespace GPSS_Server.Controllers
 
             if (cache.TryGetValue(cacheKey, out object? cachedResult) && cachedResult != null)
             {
-                logger.LogInformation("Legalize served from cache for key: {CacheKey}", cacheKey);
                 return Ok(cachedResult);
             }
 
@@ -89,7 +81,6 @@ namespace GPSS_Server.Controllers
 
             if (Helpers.DoesPropertyExist(result, "error"))
             {
-                logger.LogWarning("Legalize failed: {Error}", (object)result.error ?? String.Empty);
                 return BadRequest(result);
             }
 
@@ -99,7 +90,6 @@ namespace GPSS_Server.Controllers
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
             });
 
-            logger.LogInformation("Legalize successful. Response cached under key: {CacheKey}", cacheKey);
             return Ok(result);
         }
     }
