@@ -55,17 +55,18 @@ jobs:
           nuget install nuget.commandline -OutputDirectory .nuget -ExcludeVersion
           echo "$(pwd)/.nuget/nuget.commandline/tools" >> $GITHUB_PATH
 
-      - name: Restore .NET workloads
+      - name: Restore .NET (dependencies and workloads)
         run: |
+          dotnet restore
           dotnet workload restore
 
-      - name: Add msbuild to PATH
-        if: runner.os == 'Windows'
-        uses: microsoft/setup-msbuild@v2
+      #- name: Add msbuild to PATH
+      #  if: runner.os == 'Windows'
+      #  uses: microsoft/setup-msbuild@v2
         
-      - name: Restore NuGet dependencies for GPSS
-        if: runner.os == 'Windows'
-        run: nuget restore "${{ github.workspace }}/GPSS.sln" -NoCache
+      #- name: Restore NuGet dependencies for GPSS
+      #  if: runner.os == 'Windows'
+      #  run: nuget restore "${{ github.workspace }}/GPSS.sln" -NoCache
 
       - name: Setup environment variables
         id: setup_env

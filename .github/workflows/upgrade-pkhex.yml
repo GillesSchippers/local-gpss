@@ -74,16 +74,26 @@ jobs:
           # Remove PKHeX directory
           Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX
     
-      - name: Restore .NET workloads
-        run: dotnet workload restore
+      - name: Restore .NET (dependencies and workloads)
+        run: |
+          dotnet restore
+          dotnet workload restore
 
-      - name: Restore NuGet dependencies for GPSS
-        run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
+      #- name: Restore NuGet dependencies for GPSS
+      #  run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
         
       - name: Build GPSS
         run: |
-          msbuild "${{ github.workspace }}/Server/GPSS Server.csproj" /p:Configuration=Release /p:Platform="Any CPU" /p:DebugType=None /p:DebugSymbols=false
-          msbuild "${{ github.workspace }}/Client/GPSS Client.csproj" /p:Configuration=Release /p:Platform="Any CPU" /p:DebugType=None /p:DebugSymbols=false
+          dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
+            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:DebugType=None -p:DebugSymbols=false \
+            -r "${{ matrix.arch }}"
+          dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
+            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
+            -p:EnableCompressionInSingleFile=true \
+            -p:DebugType=None -p:DebugSymbols=false \
+            -r "${{ matrix.arch }}" -f "net9.0-windows10.0.19041.0"
         id: gpss-build
      
   commit-and-push:
