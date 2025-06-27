@@ -6,11 +6,6 @@
         "Path": "Server\\GPSS Server.csproj",
         "Action": "Start",
         "DebugTarget": "GPSS Server"
-      },
-      {
-        "Path": "Client\\GPSS Client.csproj",
-        "Action": "Start",
-        "DebugTarget": "GPSS Client"
       }
     ]
   }
