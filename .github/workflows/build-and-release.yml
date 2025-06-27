@@ -79,16 +79,7 @@ jobs:
       - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
         shell: bash
         run: |
-          if [ "${{ matrix.project }}" = "client" ]; then
-            FRAMEWORK="-f net9.0-windows10.0.19041.0"
-          else
-            FRAMEWORK=""
-          fi
-          dotnet publish "${{ steps.setup_env.outputs.project_path }}" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
-            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
-            -p:EnableCompressionInSingleFile=true \
-            -p:DebugType=None -p:DebugSymbols=false \
-            -r "${{ matrix.arch }}" $FRAMEWORK
+          dotnet publish "${{ steps.setup_env.outputs.project_path }}" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" -p:PublishProfile="${{ matrix.arch}}"
 
       - name: Set execute permissions (Linux/macOS)
         if: runner.os != 'Windows'
