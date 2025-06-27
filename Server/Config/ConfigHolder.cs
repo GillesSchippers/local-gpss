@@ -71,6 +71,16 @@
         /// <param name="config">The config<see cref="ServerConfig"/>.</param>
         private static void Save(ServerConfig config)
         {
+            try
+            {
+#if !DEBUG
+                var json = JsonSerializer.Serialize(config);
+                File.WriteAllText(ConfigFilePath, json);
+#else
+                return; // Skip saving in debug mode to avoid file write issues
+#endif
+            }
+            catch { /* Ignore */ }
         }
 
         /// <summary>
