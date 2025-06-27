@@ -15,7 +15,6 @@ My toolset and fork for interacting with and hosting GPSS.
 ### Client
 
 - [ ] Make interface more user-friendly
-- [ ] Improve pokemon display
 - [ ] Improve overall quality of the client
 - [ ] Update documentation
 
