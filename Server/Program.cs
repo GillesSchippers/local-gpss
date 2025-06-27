@@ -1,7 +1,6 @@
 using GPSS_Server.Config;
 using GPSS_Server.Datastore;
 using GPSS_Server.Datastore.Checks;
-using GPSS_Server.Services;
 using GPSS_Server.Utils;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -18,7 +17,7 @@ internal class Program
     /// <summary>
     /// Gets the Config.
     /// </summary>
-    private static ConfigHolder Config => new(ConfigService.Load());
+    private static ConfigHolder Config => new();
 
     /// <summary>
     /// The Main.
@@ -73,7 +72,7 @@ internal class Program
                     });
                 }
 
-                if (Config.Config.GpssHttps)
+                if (Config.Get(config => config.GpssHttps))
                 {
                     if (string.IsNullOrWhiteSpace(Config.Get(config => config.GpssHttpsCert)) || string.IsNullOrWhiteSpace(Config.Get(config => config.GpssHttpsKey)))
                     {
@@ -81,7 +80,7 @@ internal class Program
                         Environment.Exit(3);
                     }
 
-                    options.Listen(address, Config.Config.GpssPort, listenOptions =>
+                    options.Listen(address, Config.Get(config => config.GpssPort), listenOptions =>
                     {
                         listenOptions.UseHttps(Config.Get(config => config.GpssHttpsCert), Config.Get(config => config.GpssHttpsKey));
                         listenOptions.Protocols = HttpProtocols.Http1AndHttp2;

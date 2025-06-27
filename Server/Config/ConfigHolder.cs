@@ -1,22 +1,77 @@
 ﻿namespace GPSS_Server.Config
 {
+    using System;
+    using System.IO;
     using System.Linq.Expressions;
     using System.Reflection;
+    using System.Text.Json;
 
     /// <summary>
     /// Defines the <see cref="ConfigHolder" />.
     /// </summary>
-    public class ConfigHolder(ServerConfig config)
+    public class ConfigHolder
     {
+        /// <summary>
+        /// Defines the ConfigFilePath.
+        /// </summary>
+        private const string ConfigFilePath = "Config.json";
+
+        /// <summary>
+        /// Defines the _instance.
+        /// </summary>
+        private static ConfigHolder? _instance;
+
         /// <summary>
         /// Defines the ConfigChanged.
         /// </summary>
-        public event EventHandler? ConfigChanged;
+        public event EventHandler<ConfigChangedEventArgs>? ConfigChanged;
 
         /// <summary>
         /// Gets or sets the Config.
         /// </summary>
-        public ServerConfig Config { get; set; } = config;
+        private ServerConfig Config { get; set; }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigHolder"/> class.
+        /// </summary>
+        public ConfigHolder()
+        {
+            if (_instance != null)
+                throw new InvalidOperationException("Only one instance of ConfigHolder is allowed.");
+            _instance = this;
+            Config = Load();
+        }
+
+        /// <summary>
+        /// The Load.
+        /// </summary>
+        /// <returns>The <see cref="ServerConfig"/>.</returns>
+        private static ServerConfig Load()
+        {
+            try
+            {
+                if (File.Exists(ConfigFilePath))
+                {
+                    var json = File.ReadAllText(ConfigFilePath);
+                    var config = JsonSerializer.Deserialize<ServerConfig>(json);
+                    if (config != null)
+                        return config;
+                }
+            }
+            catch { /* Ignore */ }
+
+            var defaultConfig = new ServerConfig();
+            Save(defaultConfig);
+            return defaultConfig;
+        }
+
+        /// <summary>
+        /// The Save.
+        /// </summary>
+        /// <param name="config">The config<see cref="ServerConfig"/>.</param>
+        private static void Save(ServerConfig config)
+        {
+        }
 
         /// <summary>
         /// The Get.
@@ -51,11 +106,23 @@
                 if (propInfo != null)
                 {
                     propInfo.SetValue(Config, value);
-                    ConfigChanged?.Invoke(this, EventArgs.Empty);
+                    Save(Config);
+                    ConfigChanged?.Invoke(this, new ConfigChangedEventArgs(Config));
                     return;
                 }
             }
             throw new ArgumentException("Invalid property selector");
         }
+    }
+
+    /// <summary>
+    /// Defines the <see cref="ConfigChangedEventArgs" />.
+    /// </summary>
+    public class ConfigChangedEventArgs(ServerConfig config) : EventArgs
+    {
+        /// <summary>
+        /// Gets the Config.
+        /// </summary>
+        public ServerConfig Config { get; } = config;
     }
 }
