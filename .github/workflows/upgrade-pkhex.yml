@@ -45,10 +45,10 @@ jobs:
           fi
 
           # Clone PKHeX-Plugins at the matching tag
-          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/santacrab2/PKHeX-Plugins.git ${{ github.workspace }}/PKHeX-Plugins
+          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/santacrab2/PKHeX-Plugins.git "${{ github.workspace }}/PKHeX-Plugins"
 
           # Clone PKHeX at the matching tag
-          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/kwsch/PKHeX.git ${{ github.workspace }}/PKHeX
+          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/kwsch/PKHeX.git "${{ github.workspace }}/PKHeX"
 
       - name: Setup .NET 9.0
         uses: actions/setup-dotnet@v4
@@ -65,14 +65,14 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet dependencies for PKHeX-Plugins
-        run: nuget restore ${{ github.workspace }}/PKHeX-Plugins/PKHeX-Plugins.sln
+        run: nuget restore "${{ github.workspace }}/PKHeX-Plugins/PKHeX-Plugins.sln"
 
       - name: Restore NuGet dependencies for PKHeX
-        run: nuget restore ${{ github.workspace }}/PKHeX/PKHeX.sln -NoCache
+        run: nuget restore "${{ github.workspace }}/PKHeX/PKHeX.sln" -NoCache
 
       - name: Build PKHeX.Core
         run: |
-          msbuild ${{ github.workspace }}/PKHeX/PKHeX.Core/PKHeX.Core.csproj /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}/PKHeX/PKHeX.Core/PKHeX.Core.csproj" /p:Configuration=Release /p:Platform="Any CPU"
 
       - name: Copy PKHeX.Core.dll to NuGet cache
         shell: powershell
@@ -82,19 +82,19 @@ jobs:
 
       - name: Build PKHeX.Core.AutoMod
         run: |
-          msbuild ${{ github.workspace }}/PKHeX-Plugins/PKHeX.Core.AutoMod/PKHeX.Core.AutoMod.csproj /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}/PKHeX-Plugins/PKHeX.Core.AutoMod/PKHeX.Core.AutoMod.csproj" /p:Configuration=Release /p:Platform="Any CPU"
 
       - name: Prepare dlls
         run: |
-          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" ${{ github.workspace }}\Shared\Deps /Y
-          xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" ${{ github.workspace }}\Shared\Deps /Y
+          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" "${{ github.workspace }}\Shared\Deps" /Y
+          xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" "${{ github.workspace }}\Shared\Deps" /Y
 
       - name: Remove other repo directories
         run: |
           # Remove PKHeX-Plugins directory
-          Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX-Plugins
+          Remove-Item -Recurse -Force "${{ github.workspace }}/PKHeX-Plugins"
           # Remove PKHeX directory
-          Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX
+          Remove-Item -Recurse -Force "${{ github.workspace }}/PKHeX"
     
       - name: Restore .NET (dependencies and workloads)
         run: |
@@ -135,6 +135,6 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add deps/PKHeX.Core.dll deps/PKHeX.Core.AutoMod.dll
+          git add Shared/Deps/PKHeX.Core.dll Shared/Deps/PKHeX.Core.AutoMod.dll
           git commit -m "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
           git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref_name }}
