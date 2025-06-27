@@ -102,9 +102,6 @@ jobs:
           dotnet restore "${{ github.workspace }}/Client/GPSS Client.csproj"
           dotnet workload restore "${{ github.workspace }}/Server/GPSS Server.csproj"
           dotnet workload restore "${{ github.workspace }}/Client/GPSS Client.csproj"
-
-      #- name: Restore NuGet dependencies for GPSS
-      #  run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
         
       - name: Build GPSS
         run: |
