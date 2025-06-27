@@ -7,8 +7,6 @@
     /// </summary>
     public class ServerConfig
     {
-        // Server options
-
         /// <summary>
         /// Gets or sets the GpssHost.
         /// </summary>
@@ -45,8 +43,6 @@
         [JsonPropertyName("gpss_https_key")]
         public string? GpssHttpsKey { get; set; }
 
-        // Database options
-
         /// <summary>
         /// Gets or sets the MySqlHost.
         /// </summary>
@@ -76,5 +72,23 @@
         /// </summary>
         [JsonPropertyName("mysql_database")]
         public string MySqlDatabase { get; set; } = "gpss";
+
+        /// <summary>
+        /// Gets or sets the CacheSearch.
+        /// </summary>
+        [JsonPropertyName("cache_search")]
+        public int CacheSearch { get; set; } = 1440;
+
+        /// <summary>
+        /// Gets or sets the CachePokemon.
+        /// </summary>
+        [JsonPropertyName("cache_pokemon")]
+        public int CachePokemon { get; set; } = 10080;
+
+        /// <summary>
+        /// Gets or sets the CacheBundle.
+        /// </summary>
+        [JsonPropertyName("cache_bundle")]
+        public int CacheBundle { get; set; } = 10080;
     }
 }
