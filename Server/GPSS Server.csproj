@@ -31,7 +31,7 @@
 
 	<ItemGroup>
 		<Reference Include="PKHeX.Core">
-			<HintPath>..\Shared\Deps\Server\PKHeX.Core.dll</HintPath>
+			<HintPath>..\Shared\Deps\PKHeX.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="PKHeX.Core.AutoMod">
 			<HintPath>..\Shared\Deps\Server\PKHeX.Core.AutoMod.dll</HintPath>
