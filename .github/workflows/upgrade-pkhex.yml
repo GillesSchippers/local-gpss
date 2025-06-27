@@ -19,14 +19,36 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Checkout PKHeX Plugins
+      - name: Find latest matching tag and checkout PKHeX-Plugins and PKHeX
+        id: tagfetch
+        shell: bash
         run: |
-          git clone -q --depth=5 --branch=cherrytree https://github.com/santacrab2/PKHeX-Plugins.git ${{ github.workspace }}/PKHeX-Plugins
+          set -e
 
+          # Fetch all tags from PKHeX-Plugins, sorted newest first
+          PLUGINS_TAGS=$(git ls-remote --tags --refs --sort="-v:refname" https://github.com/santacrab2/PKHeX-Plugins.git | awk -F/ '{print $NF}' | grep -E '^[0-9]{2}\.[0-9]{2}\.[0-9]{2}$')
 
-      - name: Checkout PKHeX
-        run: |
-          git clone -q --depth=5 --branch=master https://github.com/kwsch/PKHeX.git ${{ github.workspace }}/PKHeX
+          # Try each tag, newest first
+          for TAG in $PLUGINS_TAGS; do
+            # Check if PKHeX has the same tag
+            if git ls-remote --tags --refs https://github.com/kwsch/PKHeX.git | grep -q "refs/tags/$TAG$"; then
+              echo "Found matching tag: $TAG"
+              echo "tag=$TAG" >> $GITHUB_OUTPUT
+              break
+            fi
+          done
+
+          # Fail if no tag was found
+          if [ -z "$TAG" ]; then
+            echo "No matching tag found between PKHeX-Plugins and PKHeX."
+            exit 1
+          fi
+
+          # Clone PKHeX-Plugins at the matching tag
+          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/santacrab2/PKHeX-Plugins.git ${{ github.workspace }}/PKHeX-Plugins
+
+          # Clone PKHeX at the matching tag
+          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/kwsch/PKHeX.git ${{ github.workspace }}/PKHeX
 
       - name: Setup .NET 9.0
         uses: actions/setup-dotnet@v4
@@ -90,12 +112,12 @@ jobs:
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -p:DebugType=None -p:DebugSymbols=false \
-            -r "${{ matrix.arch }}"
+            -r "win-x64"
           dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -p:DebugType=None -p:DebugSymbols=false \
-            -r "${{ matrix.arch }}" -f "net9.0-windows10.0.19041.0"
+            -r "win-x64" -f "net9.0-windows10.0.19041.0"
         id: gpss-build
      
   commit-and-push:
