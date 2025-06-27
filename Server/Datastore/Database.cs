@@ -68,14 +68,14 @@ namespace GPSS_Server.Datastore
         /// <param name="services">The services<see cref="IServiceCollection"/>.</param>
         /// <param name="config">The config<see cref="ServerConfig"/>.</param>
         /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddGpssDatabase(this IServiceCollection services, ServerConfig config)
+        public static IServiceCollection AddGpssDatabase(this IServiceCollection services, ConfigHolder config)
         {
 #if DEBUG
             // Use in-memory database for debugging/mocking
             services.AddDbContext<GpssDbContext>(options =>
                 options.UseInMemoryDatabase("MockGpssDb"));
 #else
-            var connectionString = $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};";
+            var connectionString = $"Server={config.Config.MySqlHost};Port={config.Config.MySqlPort};User={config.Config.MySqlUser};Password={config.Config.MySqlPassword};Database={config.Config.MySqlDatabase};";
             services.AddDbContext<GpssDbContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
             );

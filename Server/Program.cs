@@ -16,6 +16,11 @@ using System.Net;
 internal class Program
 {
     /// <summary>
+    /// Gets the Config.
+    /// </summary>
+    private static ConfigHolder Config => new(ConfigService.Load());
+
+    /// <summary>
     /// The Main.
     /// </summary>
     /// <param name="args">The args<see cref="string[]"/>.</param>
@@ -24,14 +29,13 @@ internal class Program
         try
         {
             var builder = WebApplication.CreateBuilder(args);
-            var config = ConfigService.Load();
 
-            builder.Services.AddSingleton<ConfigHolder>(sp => new ConfigHolder(config));
+            builder.Services.AddSingleton<ConfigHolder>(sp => Config);
             builder.Services.AddMemoryCache(options =>
             {
                 options.SizeLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 3;
             });
-            builder.Services.AddGpssDatabase(config);
+            builder.Services.AddGpssDatabase(Config);
             builder.Services.AddControllers();
             builder.Services.AddHostedService<IntegrityChecker>();
 
@@ -43,43 +47,43 @@ internal class Program
                     listenOptions.Protocols = HttpProtocols.Http1;
                 });
 #else
-                if (config.GpssHttp && config.GpssHttps)
+                if (Config.Config.GpssHttp && Config.Config.GpssHttps)
                 {
                     Console.WriteLine("Error: Both HTTP and HTTPS are enabled. Please enable only one.");
                     Environment.Exit(3);
                 }
-                else if (!config.GpssHttp && !config.GpssHttps)
+                else if (!Config.Config.GpssHttp && !Config.Config.GpssHttps)
                 {
                     Console.WriteLine("Error: No HTTP or HTTPS endpoints are enabled. Please enable at least one.");
                     Environment.Exit(3);
                 }
 
-                IPAddress? address = Helpers.GetAddressFromString(config.GpssHost);
+                IPAddress? address = Helpers.GetAddressFromString(Config.Config.GpssHost);
                 if (address == null)
                 {
                     Console.WriteLine($"Error: Invalid Hostname or IP address. Please configure a valid host.");
                     Environment.Exit(3);
                 }
 
-                if (config.GpssHttp)
+                if (Config.Config.GpssHttp)
                 {
-                    options.Listen(address, config.GpssPort, listenOptions =>
+                    options.Listen(address, Config.Config.GpssPort, listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1;
                     });
                 }
 
-                if (config.GpssHttps)
+                if (Config.Config.GpssHttps)
                 {
-                    if (string.IsNullOrWhiteSpace(config.GpssHttpsCert) || string.IsNullOrWhiteSpace(config.GpssHttpsKey))
+                    if (string.IsNullOrWhiteSpace(Config.Config.GpssHttpsCert) || string.IsNullOrWhiteSpace(Config.Config.GpssHttpsKey))
                     {
                         Console.WriteLine("Error: HTTPS is enabled but certificate or key path is missing in config.");
                         Environment.Exit(3);
                     }
 
-                    options.Listen(address, config.GpssPort, listenOptions =>
+                    options.Listen(address, Config.Config.GpssPort, listenOptions =>
                     {
-                        listenOptions.UseHttps(config.GpssHttpsCert, config.GpssHttpsKey);
+                        listenOptions.UseHttps(Config.Config.GpssHttpsCert, Config.Config.GpssHttpsKey);
                         listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
                     });
                 }
@@ -103,7 +107,7 @@ internal class Program
 #if DEBUG
             app.UseDeveloperExceptionPage();
 #endif
-            if (config.GpssHttps)
+            if (Config.Config.GpssHttps)
             {
                 app.UseHsts();
                 app.UseHttpsRedirection();
