@@ -9,6 +9,8 @@ permissions:
 jobs:
   build:
     name: Build and update PKHeX and verify GPSS still compiles
+    outputs:
+      tag: ${{ steps.tagfetch.outputs.tag }}
     runs-on: windows-latest
     permissions:
       contents: read
@@ -123,16 +125,28 @@ jobs:
     runs-on: windows-latest
     permissions:
       contents: write
+      pull-requests: write
       id-token: write
     if: needs.build.result == 'success'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed to create a new branch
 
-      - name: Commit and Push DLLs
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add Shared/Deps/PKHeX.Core.dll Shared/Deps/PKHeX.Core.AutoMod.dll
-          git commit -m "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
-          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref_name }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: pkhex-upgrade/${{ needs.build.outputs.tag || 'auto' }}
+          title: "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
+          body: "Automated update of PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
+          commit-message: "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll to the latest version from PKHeX-Plugins and PKHeX."
+          add-paths: |
+            "Shared/Deps/PKHeX.Core.dll"
+            "Shared/Deps/PKHeX.Core.AutoMod.dll"
+          assignees: "GillesSchippers"
+          sign-commits: true
+          delete-branch: true
+          signoff: true
+          
