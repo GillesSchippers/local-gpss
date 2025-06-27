@@ -7,9 +7,10 @@ My toolset and fork for interacting with and hosting GPSS.
 
 ### Server
 
-- [ ] Make the server more optimized for public use
+- [x] Make the server more optimized for public use
 - [ ] Add a way to administer the server/database
 - [ ] Provide better search and filtering options
+- [ ] Update documentation
 - [ ] Create and use shared code (Client <-> Server)
 
 ### Client
@@ -17,6 +18,7 @@ My toolset and fork for interacting with and hosting GPSS.
 - [ ] Make interface more user-friendly
 - [ ] Improve pokemon display
 - [ ] Improve overall quality of the client
+- [ ] Update documentation
 - [ ] Create and use shared code (Client <-> Server)
 
 ## Puclic server
