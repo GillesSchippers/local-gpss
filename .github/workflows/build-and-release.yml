@@ -55,11 +55,6 @@ jobs:
           nuget install nuget.commandline -OutputDirectory .nuget -ExcludeVersion
           echo "$(pwd)/.nuget/nuget.commandline/tools" >> $GITHUB_PATH
 
-      - name: Restore .NET (dependencies and workloads)
-        run: |
-          dotnet restore
-          dotnet workload restore
-
       #- name: Add msbuild to PATH
       #  if: runner.os == 'Windows'
       #  uses: microsoft/setup-msbuild@v2
@@ -83,6 +78,11 @@ jobs:
           echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
           echo "executable_name=$EXECUTABLE_NAME" >> $GITHUB_OUTPUT
           echo "executable_dir=$EXECUTABLE_DIR" >> $GITHUB_OUTPUT
+
+      - name: Restore .NET (dependencies and workloads)
+        run: |
+          dotnet restore "${{ steps.setup_env.outputs.project_path }}"
+          dotnet workload restore "${{ steps.setup_env.outputs.project_path }}"
 
       - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
         shell: bash

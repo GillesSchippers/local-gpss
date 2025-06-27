@@ -76,8 +76,10 @@ jobs:
     
       - name: Restore .NET (dependencies and workloads)
         run: |
-          dotnet restore
-          dotnet workload restore
+          dotnet restore "${{ github.workspace }}/Server/GPSS Server.csproj"
+          dotnet restore "${{ github.workspace }}/Client/GPSS Client.csproj"
+          dotnet workload restore "${{ github.workspace }}/Server/GPSS Server.csproj"
+          dotnet workload restore "${{ github.workspace }}/Client/GPSS Client.csproj"
 
       #- name: Restore NuGet dependencies for GPSS
       #  run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
