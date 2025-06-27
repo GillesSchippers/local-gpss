@@ -9,6 +9,11 @@
 		<Version>1.4.2</Version>
 	</PropertyGroup>
 
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugSymbols>False</DebugSymbols>
+		<DebugType>None</DebugType>
+	</PropertyGroup>
+
 	<ItemGroup>
 		<Content Remove="Config.json" />
 	</ItemGroup>
@@ -26,20 +31,11 @@
 
 	<ItemGroup>
 		<Reference Include="PKHeX.Core">
-			<HintPath>..\Shared\Deps\PKHeX.Core.dll</HintPath>
+			<HintPath>..\Shared\Deps\Server\PKHeX.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="PKHeX.Core.AutoMod">
-			<HintPath>..\Shared\Deps\PKHeX.Core.AutoMod.dll</HintPath>
+			<HintPath>..\Shared\Deps\Server\PKHeX.Core.AutoMod.dll</HintPath>
 		</Reference>
 	</ItemGroup>
-
-	<ItemGroup>
-		<Content Update="Output\**" CopyToPublishDirectory="Never" />
-	</ItemGroup>
-
-	<PropertyGroup Condition="'$(Configuration)'=='Release'">
-		<DebugSymbols>False</DebugSymbols>
-		<DebugType>None</DebugType>
-	</PropertyGroup>
 
 </Project>
