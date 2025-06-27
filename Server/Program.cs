@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
 
 #if !DEBUG
+using MySqlConnector;
 using System.Net;
 #endif
 
@@ -15,9 +16,9 @@ using System.Net;
 internal class Program
 {
     /// <summary>
-    /// Gets the Config.
+    /// Defines the Config.
     /// </summary>
-    private static ConfigHolder Config => new();
+    private static readonly ConfigHolder Config = new();
 
     /// <summary>
     /// The Main.
@@ -29,12 +30,33 @@ internal class Program
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddSingleton<ConfigHolder>(sp => Config);
+            builder.Services.AddSingleton(Config);
             builder.Services.AddMemoryCache(options =>
             {
                 options.SizeLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 3;
             });
-            builder.Services.AddGpssDatabase(Config);
+
+#if DEBUG
+            builder.Services.AddDbContext<GpssDbContext>((sp, options) =>
+                options.UseInMemoryDatabase("MockGpssDb"));
+#else
+            builder.Services.AddDbContext<GpssDbContext>((sp, options) =>
+            {
+                var config = sp.GetRequiredService<ConfigHolder>();
+                var builder = new MySqlConnectionStringBuilder
+                {
+                    Server = config.Get(c => c.MySqlHost),
+                    Port = (uint)config.Get(c => c.MySqlPort),
+                    UserID = config.Get(c => c.MySqlUser),
+                    Password = config.Get(c => c.MySqlPassword),
+                    Database = config.Get(c => c.MySqlDatabase),
+                    // You can set additional options here if needed
+                };
+                options.UseMySql(builder.ConnectionString, ServerVersion.AutoDetect(builder.ConnectionString));
+            });
+#endif
+
+            builder.Services.AddScoped<Database>();
             builder.Services.AddControllers();
             builder.Services.AddHostedService<IntegrityChecker>();
 

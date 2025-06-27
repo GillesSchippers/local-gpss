@@ -1,6 +1,5 @@
 namespace GPSS_Server.Datastore
 {
-    using GPSS_Server.Config;
     using GPSS_Server.Models;
     using GPSS_Server.Utils;
     using Microsoft.EntityFrameworkCore;
@@ -54,34 +53,6 @@ namespace GPSS_Server.Datastore
                 .WithMany(b => b.BundlePokemons)
                 .HasForeignKey(bp => bp.BundleId)
                 .OnDelete(DeleteBehavior.Cascade);
-        }
-    }
-
-    /// <summary>
-    /// Defines the <see cref="DatabaseServiceExtensions" />.
-    /// </summary>
-    public static class DatabaseServiceExtensions
-    {
-        /// <summary>
-        /// The AddGpssDatabase.
-        /// </summary>
-        /// <param name="services">The services<see cref="IServiceCollection"/>.</param>
-        /// <param name="config">The config<see cref="ServerConfig"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddGpssDatabase(this IServiceCollection services, ConfigHolder config)
-        {
-#if DEBUG
-            // Use in-memory database for debugging/mocking
-            services.AddDbContext<GpssDbContext>(options =>
-                options.UseInMemoryDatabase("MockGpssDb"));
-#else
-            var connectionString = $"Server={config.Get(config => config.MySqlHost)};Port={config.Get(config => config.MySqlPort)};User={config.Get(config => config.MySqlUser)};Password={config.Get(config => config.MySqlPassword)};Database={config.Get(config => config.MySqlDatabase)};";
-            services.AddDbContext<GpssDbContext>(options =>
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
-            );
-#endif
-            services.AddScoped<Database>();
-            return services;
         }
     }
 
