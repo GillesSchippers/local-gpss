@@ -27,11 +27,15 @@ namespace GPSS_Server.Datastore.Checks
         /// <returns>The <see cref="Task"/>.</returns>
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            try
             {
-                await CheckAllPokemonAsync(stoppingToken);
-                await Task.Delay(Interval, stoppingToken);
+                while (!stoppingToken.IsCancellationRequested)
+                {
+                    await CheckAllPokemonAsync(stoppingToken);
+                    await Task.Delay(Interval, stoppingToken);
+                }
             }
+            catch (TaskCanceledException) { /* Ignore */ }
         }
 
         /// <summary>
@@ -41,111 +45,107 @@ namespace GPSS_Server.Datastore.Checks
         /// <returns>The <see cref="Task"/>.</returns>
         private async Task CheckAllPokemonAsync(CancellationToken cancellationToken)
         {
-            try
+            using var scope = services.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<GpssDbContext>();
+            logger.LogInformation("Daily integrity check of pokemon is starting.");
+
+            int total = await context.Pokemons.CountAsync(cancellationToken);
+            for (int skip = 0; skip < total; skip += BatchSize)
             {
-                using var scope = services.CreateScope();
-                var context = scope.ServiceProvider.GetRequiredService<GpssDbContext>();
-                logger.LogInformation("Daily integrity check of pokemon is starting.");
+                var pokemons = await context.Pokemons
+                    .OrderBy(p => p.Id)
+                    .Skip(skip)
+                    .Take(BatchSize)
+                    .ToListAsync(cancellationToken);
 
-                int total = await context.Pokemons.CountAsync(cancellationToken);
-                for (int skip = 0; skip < total; skip += BatchSize)
+                foreach (var p in pokemons)
                 {
-                    var pokemons = await context.Pokemons
-                        .OrderBy(p => p.Id)
-                        .Skip(skip)
-                        .Take(BatchSize)
-                        .ToListAsync(cancellationToken);
-
-                    foreach (var p in pokemons)
+                    try
                     {
+                        var computedHash = Helpers.ComputeSha256Hash(p.Base64);
+                        bool hashMatches = string.Equals(computedHash, p.Base64Hash, StringComparison.OrdinalIgnoreCase);
+
+                        PKM? pkmn = null;
+                        bool canParse = false;
                         try
                         {
-                            var computedHash = Helpers.ComputeSha256Hash(p.Base64);
-                            bool hashMatches = string.Equals(computedHash, p.Base64Hash, StringComparison.OrdinalIgnoreCase);
+                            var bytes = Convert.FromBase64String(p.Base64);
+                            pkmn = EntityFormat.GetFromBytes(bytes, Helpers.EntityContextFromString(p.Generation));
+                            canParse = pkmn != null;
+                        }
+                        catch
+                        {
+                            canParse = false;
+                        }
 
-                            PKM? pkmn = null;
-                            bool canParse = false;
-                            try
+                        if (!hashMatches)
+                        {
+                            if (canParse)
                             {
-                                var bytes = Convert.FromBase64String(p.Base64);
-                                pkmn = EntityFormat.GetFromBytes(bytes, Helpers.EntityContextFromString(p.Generation));
-                                canParse = pkmn != null;
-                            }
-                            catch
-                            {
-                                canParse = false;
-                            }
+                                // Hash mismatch but PKHeX can parse: update hash
+                                logger.LogWarning("Hash mismatch for Pokemon ID {Id}, but PKHeX can parse. Updating hash.", p.Id);
+                                p.Base64Hash = computedHash;
 
-                            if (!hashMatches)
-                            {
-                                if (canParse)
+                                // If we get here, PKHeX can parse the Pokémon. Check generation.
+                                if (pkmn != null)
                                 {
-                                    // Hash mismatch but PKHeX can parse: update hash
-                                    logger.LogWarning("Hash mismatch for Pokemon ID {Id}, but PKHeX can parse. Updating hash.", p.Id);
-                                    p.Base64Hash = computedHash;
-
-                                    // If we get here, PKHeX can parse the Pokémon. Check generation.
-                                    if (pkmn != null)
+                                    var parsedGen = pkmn.Context.Generation().ToString();
+                                    if (!string.Equals(p.Generation, parsedGen, StringComparison.OrdinalIgnoreCase))
                                     {
-                                        var parsedGen = pkmn.Context.Generation().ToString();
-                                        if (!string.Equals(p.Generation, parsedGen, StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            logger.LogWarning("Generation mismatch for Pokemon ID {Id}: stored {StoredGen}, parsed {ParsedGen}. Updating stored generation.", p.Id, p.Generation, parsedGen);
-                                            p.Generation = parsedGen;
-                                        }
+                                        logger.LogWarning("Generation mismatch for Pokemon ID {Id}: stored {StoredGen}, parsed {ParsedGen}. Updating stored generation.", p.Id, p.Generation, parsedGen);
+                                        p.Generation = parsedGen;
                                     }
-                                    // Continue to legality check below
                                 }
-                                else
-                                {
-                                    // Hash mismatch and cannot parse: remove from DB and all references
-                                    logger.LogWarning("Hash mismatch and PKHeX cannot parse Pokemon ID {Id}. Removing from database and all references.", p.Id);
-                                    var bundleRefs = context.BundlePokemons?
-                                        .Where(bp => bp.PokemonId == p.Id)
-                                        .ToList();
-                                    if (bundleRefs != null && bundleRefs.Count > 0)
-                                        context.BundlePokemons?.RemoveRange(bundleRefs);
-                                    context.Pokemons.Remove(p);
-                                    continue;
-                                }
+                                // Continue to legality check below
                             }
                             else
                             {
-                                if (!canParse)
-                                {
-                                    // Hash matches but cannot parse: remove from DB and all references
-                                    logger.LogWarning("PKHeX cannot parse Pokemon ID {Id} (hash ok). Removing from database and all references.", p.Id);
-                                    var bundleRefs = context.BundlePokemons?
-                                        .Where(bp => bp.PokemonId == p.Id)
-                                        .ToList();
-                                    if (bundleRefs != null && bundleRefs.Count > 0)
-                                        context.BundlePokemons?.RemoveRange(bundleRefs);
-                                    context.Pokemons.Remove(p);
-                                    continue;
-                                }
-                            }
-
-                            // If we get here, PKHeX can parse the Pokémon. Check legality.
-                            if (pkmn != null)
-                            {
-                                var legality = new LegalityAnalysis(pkmn);
-                                if (p.Legal != legality.Valid)
-                                {
-                                    logger.LogInformation("Updating legality for Pokemon ID {Id}: {Old} -> {New}", p.Id, p.Legal, legality.Valid);
-                                    p.Legal = legality.Valid;
-                                }
+                                // Hash mismatch and cannot parse: remove from DB and all references
+                                logger.LogWarning("Hash mismatch and PKHeX cannot parse Pokemon ID {Id}. Removing from database and all references.", p.Id);
+                                var bundleRefs = context.BundlePokemons?
+                                    .Where(bp => bp.PokemonId == p.Id)
+                                    .ToList();
+                                if (bundleRefs != null && bundleRefs.Count > 0)
+                                    context.BundlePokemons?.RemoveRange(bundleRefs);
+                                context.Pokemons.Remove(p);
+                                continue;
                             }
                         }
-                        catch (Exception ex)
+                        else
                         {
-                            logger.LogError(ex, "Error checking Pokemon ID {Id}", p.Id);
+                            if (!canParse)
+                            {
+                                // Hash matches but cannot parse: remove from DB and all references
+                                logger.LogWarning("PKHeX cannot parse Pokemon ID {Id} (hash ok). Removing from database and all references.", p.Id);
+                                var bundleRefs = context.BundlePokemons?
+                                    .Where(bp => bp.PokemonId == p.Id)
+                                    .ToList();
+                                if (bundleRefs != null && bundleRefs.Count > 0)
+                                    context.BundlePokemons?.RemoveRange(bundleRefs);
+                                context.Pokemons.Remove(p);
+                                continue;
+                            }
+                        }
+
+                        // If we get here, PKHeX can parse the Pokémon. Check legality.
+                        if (pkmn != null)
+                        {
+                            var legality = new LegalityAnalysis(pkmn);
+                            if (p.Legal != legality.Valid)
+                            {
+                                logger.LogInformation("Updating legality for Pokemon ID {Id}: {Old} -> {New}", p.Id, p.Legal, legality.Valid);
+                                p.Legal = legality.Valid;
+                            }
                         }
                     }
-                    await context.SaveChangesAsync(cancellationToken);
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error checking Pokemon ID {Id}", p.Id);
+                    }
                 }
-                logger.LogInformation("Daily integrity check of pokemon has finished.");
+                await context.SaveChangesAsync(cancellationToken);
             }
-            catch (TaskCanceledException) { /* Ignore */ }
+            logger.LogInformation("Daily integrity check of pokemon has finished.");
         }
     }
 }
