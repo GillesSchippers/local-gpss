@@ -75,7 +75,7 @@ namespace GPSS_Server.Datastore
             services.AddDbContext<GpssDbContext>(options =>
                 options.UseInMemoryDatabase("MockGpssDb"));
 #else
-            var connectionString = $"Server={config.Config.MySqlHost};Port={config.Config.MySqlPort};User={config.Config.MySqlUser};Password={config.Config.MySqlPassword};Database={config.Config.MySqlDatabase};";
+            var connectionString = $"Server={config.Get(config => config.MySqlHost)};Port={config.Get(config => config.MySqlPort)};User={config.Get(config => config.MySqlUser)};Password={config.Get(config => config.MySqlPassword)};Database={config.Get(config => config.MySqlDatabase)};";
             services.AddDbContext<GpssDbContext>(options =>
                 options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
             );

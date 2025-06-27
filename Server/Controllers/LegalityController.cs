@@ -50,7 +50,7 @@ namespace GPSS_Server.Controllers
             cache.Set(cacheKey, (object)result, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(result),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
             });
 
             logger.LogInformation("Legality check successful. Response cached under key: {CacheKey}", cacheKey);
@@ -96,7 +96,7 @@ namespace GPSS_Server.Controllers
             cache.Set(cacheKey, (object)result, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(result),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
             });
 
             logger.LogInformation("Legalize successful. Response cached under key: {CacheKey}", cacheKey);

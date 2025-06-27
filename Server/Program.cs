@@ -47,27 +47,27 @@ internal class Program
                     listenOptions.Protocols = HttpProtocols.Http1;
                 });
 #else
-                if (Config.Config.GpssHttp && Config.Config.GpssHttps)
+                if (Config.Get(config => config.GpssHttp) && Config.Get(config => config.GpssHttps))
                 {
                     Console.WriteLine("Error: Both HTTP and HTTPS are enabled. Please enable only one.");
                     Environment.Exit(3);
                 }
-                else if (!Config.Config.GpssHttp && !Config.Config.GpssHttps)
+                else if (!Config.Get(config => config.GpssHttp) && !Config.Get(config => config.GpssHttps))
                 {
                     Console.WriteLine("Error: No HTTP or HTTPS endpoints are enabled. Please enable at least one.");
                     Environment.Exit(3);
                 }
 
-                IPAddress? address = Helpers.GetAddressFromString(Config.Config.GpssHost);
+                IPAddress? address = Helpers.GetAddressFromString(Config.Get(config => config.GpssHost));
                 if (address == null)
                 {
                     Console.WriteLine($"Error: Invalid Hostname or IP address. Please configure a valid host.");
                     Environment.Exit(3);
                 }
 
-                if (Config.Config.GpssHttp)
+                if (Config.Get(config => config.GpssHttp))
                 {
-                    options.Listen(address, Config.Config.GpssPort, listenOptions =>
+                    options.Listen(address, Config.Get(config => config.GpssPort), listenOptions =>
                     {
                         listenOptions.Protocols = HttpProtocols.Http1;
                     });
@@ -75,7 +75,7 @@ internal class Program
 
                 if (Config.Config.GpssHttps)
                 {
-                    if (string.IsNullOrWhiteSpace(Config.Config.GpssHttpsCert) || string.IsNullOrWhiteSpace(Config.Config.GpssHttpsKey))
+                    if (string.IsNullOrWhiteSpace(Config.Get(config => config.GpssHttpsCert)) || string.IsNullOrWhiteSpace(Config.Get(config => config.GpssHttpsKey)))
                     {
                         Console.WriteLine("Error: HTTPS is enabled but certificate or key path is missing in config.");
                         Environment.Exit(3);
@@ -83,7 +83,7 @@ internal class Program
 
                     options.Listen(address, Config.Config.GpssPort, listenOptions =>
                     {
-                        listenOptions.UseHttps(Config.Config.GpssHttpsCert, Config.Config.GpssHttpsKey);
+                        listenOptions.UseHttps(Config.Get(config => config.GpssHttpsCert), Config.Get(config => config.GpssHttpsKey));
                         listenOptions.Protocols = HttpProtocols.Http1AndHttp2;
                     });
                 }
@@ -107,7 +107,7 @@ internal class Program
 #if DEBUG
             app.UseDeveloperExceptionPage();
 #endif
-            if (Config.Config.GpssHttps)
+            if (Config.Get(config => config.GpssHttps))
             {
                 app.UseHsts();
                 app.UseHttpsRedirection();

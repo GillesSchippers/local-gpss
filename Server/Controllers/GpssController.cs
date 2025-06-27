@@ -75,7 +75,7 @@ namespace GPSS_Server.Controllers
                 cache.Set(cacheKey, result, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(result),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheSearch)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheSearch))
                 });
             }
 
@@ -140,7 +140,7 @@ namespace GPSS_Server.Controllers
                     cache.Set(cacheKey, code, new MemoryCacheEntryOptions
                     {
                         Size = Helpers.GetObjectSizeInBytes(code),
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                     });
                     logger.LogInformation("Pokemon already exists. Returning code: {Code}", code);
                     return Ok(new { code });
@@ -153,7 +153,7 @@ namespace GPSS_Server.Controllers
                 cache.Set(cacheKey, newCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(newCode),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                 });
                 logger.LogInformation("Pokemon uploaded successfully. New code: {Code}", newCode);
                 return Ok(new { code = newCode });
@@ -233,7 +233,7 @@ namespace GPSS_Server.Controllers
                     cache.Set($"upload:pokemon:{hash}", code, new MemoryCacheEntryOptions
                     {
                         Size = Helpers.GetObjectSizeInBytes(code),
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                     });
                     ids.Add(id.Value);
                 }
@@ -262,7 +262,7 @@ namespace GPSS_Server.Controllers
                 cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(bundleCode),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheBundle)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
                 });
                 logger.LogInformation("Bundle already exists. Returning code: {Code}", bundleCode);
                 return Ok(new { code = bundleCode });
@@ -274,7 +274,7 @@ namespace GPSS_Server.Controllers
             cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(bundleCode),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheBundle)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
             });
             logger.LogInformation("Bundle uploaded successfully. New code: {Code}", bundleCode);
             return Ok(new { code = bundleCode });
@@ -331,7 +331,7 @@ namespace GPSS_Server.Controllers
                 cache.Set(cacheKey, pokemon, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(pokemon),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                 });
                 logger.LogInformation("Pokemon download successful for code: {Code}", code);
                 return Ok(pokemon);
@@ -354,7 +354,7 @@ namespace GPSS_Server.Controllers
                 cache.Set(cacheKey, bundle, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(bundle),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheBundle)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
                 });
                 logger.LogInformation("Bundle download successful for code: {Code}", code);
                 return Ok(bundle);
