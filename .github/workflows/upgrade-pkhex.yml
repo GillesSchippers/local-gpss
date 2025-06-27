@@ -104,6 +104,7 @@ jobs:
           dotnet workload restore "${{ github.workspace }}/Client/GPSS Client.csproj"
         
       - name: Build GPSS
+        shell: bash
         run: |
           dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
