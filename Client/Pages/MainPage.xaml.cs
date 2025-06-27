@@ -691,17 +691,17 @@
 
             while (true)
             {
-                await Task.Delay(TimeSpan.FromSeconds(intervalSeconds));
-
                 var result = await _api.SearchAsync("pokemon", null, currentBox, boxSize);
-                if (result == null || result.Pokemon == null)
-                    continue;
-
-                if (await UpdateGuiAsync(result))
-                    break;
+                if (result != null && result.Pokemon != null)
+                {
+                    if (await UpdateGuiAsync(result))
+                        break;
+                }
 
                 if ((DateTime.UtcNow - start).TotalSeconds > timeoutSeconds)
                     break;
+
+                await Task.Delay(TimeSpan.FromSeconds(intervalSeconds));
             }
         }
 
