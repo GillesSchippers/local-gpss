@@ -1,6 +1,8 @@
 name: Upgrade PKHeX
 
 on:
+  schedule:
+    - cron: '0 12 * * 6'  # every week on Saturday at 12:00 UTC
   workflow_dispatch:
 
 permissions:
@@ -9,6 +11,8 @@ permissions:
 jobs:
   build:
     name: Build and update PKHeX and verify GPSS still compiles
+    outputs:
+      tag: ${{ steps.tagfetch.outputs.tag }}
     runs-on: windows-latest
     permissions:
       contents: read
@@ -45,10 +49,10 @@ jobs:
           fi
 
           # Clone PKHeX-Plugins at the matching tag
-          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/santacrab2/PKHeX-Plugins.git ${{ github.workspace }}/PKHeX-Plugins
+          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/santacrab2/PKHeX-Plugins.git "${{ github.workspace }}/PKHeX-Plugins"
 
           # Clone PKHeX at the matching tag
-          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/kwsch/PKHeX.git ${{ github.workspace }}/PKHeX
+          git clone --branch "$TAG" --depth 1 --recurse-submodules https://github.com/kwsch/PKHeX.git "${{ github.workspace }}/PKHeX"
 
       - name: Setup .NET 9.0
         uses: actions/setup-dotnet@v4
@@ -65,14 +69,14 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet dependencies for PKHeX-Plugins
-        run: nuget restore ${{ github.workspace }}/PKHeX-Plugins/PKHeX-Plugins.sln
+        run: nuget restore "${{ github.workspace }}/PKHeX-Plugins/PKHeX-Plugins.sln"
 
       - name: Restore NuGet dependencies for PKHeX
-        run: nuget restore ${{ github.workspace }}/PKHeX/PKHeX.sln -NoCache
+        run: nuget restore "${{ github.workspace }}/PKHeX/PKHeX.sln" -NoCache
 
       - name: Build PKHeX.Core
         run: |
-          msbuild ${{ github.workspace }}/PKHeX/PKHeX.Core/PKHeX.Core.csproj /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}/PKHeX/PKHeX.Core/PKHeX.Core.csproj" /p:Configuration=Release /p:Platform="Any CPU"
 
       - name: Copy PKHeX.Core.dll to NuGet cache
         shell: powershell
@@ -82,59 +86,40 @@ jobs:
 
       - name: Build PKHeX.Core.AutoMod
         run: |
-          msbuild ${{ github.workspace }}/PKHeX-Plugins/PKHeX.Core.AutoMod/PKHeX.Core.AutoMod.csproj /p:Configuration=Release /p:Platform="Any CPU"
+          msbuild "${{ github.workspace }}/PKHeX-Plugins/PKHeX.Core.AutoMod/PKHeX.Core.AutoMod.csproj" /p:Configuration=Release /p:Platform="Any CPU"
 
       - name: Prepare dlls
         run: |
-          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" ${{ github.workspace }}\Shared\Deps /Y
-          xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" ${{ github.workspace }}\Shared\Deps /Y
-
-      - name: Remove other repo directories
-        run: |
-          # Remove PKHeX-Plugins directory
-          Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX-Plugins
-          # Remove PKHeX directory
-          Remove-Item -Recurse -Force ${{ github.workspace }}/PKHeX
-    
-      - name: Restore .NET (dependencies and workloads)
-        run: |
-          dotnet restore "${{ github.workspace }}/Server/GPSS Server.csproj"
-          dotnet restore "${{ github.workspace }}/Client/GPSS Client.csproj"
-          dotnet workload restore "${{ github.workspace }}/Server/GPSS Server.csproj"
-          dotnet workload restore "${{ github.workspace }}/Client/GPSS Client.csproj"
-
-      #- name: Restore NuGet dependencies for GPSS
-      #  run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
-        
-      - name: Build GPSS
-        run: |
-          dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
-            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
-            -p:EnableCompressionInSingleFile=true \
-            -p:DebugType=None -p:DebugSymbols=false \
-            -r "win-x64"
-          dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
-            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
-            -p:EnableCompressionInSingleFile=true \
-            -p:DebugType=None -p:DebugSymbols=false \
-            -r "win-x64" -f "net9.0-windows10.0.19041.0"
-        id: gpss-build
+          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" "${{ github.workspace }}\Shared\Deps" /Y
+          xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" "${{ github.workspace }}\Shared\Deps" /Y
      
   commit-and-push:
     needs: build
     runs-on: windows-latest
     permissions:
       contents: write
+      pull-requests: write
       id-token: write
-    if: needs.build.outputs.gpss-build == 'success'
+    if: needs.build.result == 'success'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed to create a new branch
 
-      - name: Commit and Push DLLs
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add deps/PKHeX.Core.dll deps/PKHeX.Core.AutoMod.dll
-          git commit -m "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
-          git push "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" HEAD:${{ github.ref_name }}
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: pkhex-upgrade/${{ needs.build.outputs.tag || 'auto' }}
+          title: "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
+          body: "Automated update of PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
+          commit-message: "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll to the latest version from PKHeX-Plugins and PKHeX."
+          add-paths: |
+            "Shared/Deps/PKHeX.Core.dll"
+            "Shared/Deps/PKHeX.Core.AutoMod.dll"
+          assignees: "GillesSchippers"
+          reviewers: "GillesSchippers"
+          sign-commits: true
+          delete-branch: true
+          signoff: true
