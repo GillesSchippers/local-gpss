@@ -91,34 +91,33 @@ jobs:
           xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" "${{ github.workspace }}\Shared\Deps" /Y
           xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" "${{ github.workspace }}\Shared\Deps" /Y
 
-      - name: Remove other repo directories
-        run: |
-          # Remove PKHeX-Plugins directory
-          Remove-Item -Recurse -Force "${{ github.workspace }}/PKHeX-Plugins"
-          # Remove PKHeX directory
-          Remove-Item -Recurse -Force "${{ github.workspace }}/PKHeX"
+      #- name: Remove other repo directories
+      #  run: |
+      #    # Remove PKHeX-Plugins directory
+      #    Remove-Item -Recurse -Force "${{ github.workspace }}/PKHeX-Plugins"
+      #    # Remove PKHeX directory
+      #    Remove-Item -Recurse -Force "${{ github.workspace }}/PKHeX"
     
-      - name: Restore .NET (dependencies and workloads)
-        run: |
-          dotnet restore "${{ github.workspace }}/Server/GPSS Server.csproj"
-          dotnet restore "${{ github.workspace }}/Client/GPSS Client.csproj"
-          dotnet workload restore "${{ github.workspace }}/Server/GPSS Server.csproj"
-          dotnet workload restore "${{ github.workspace }}/Client/GPSS Client.csproj"
+      #- name: Restore .NET (dependencies and workloads)
+      #  run: |
+      #    dotnet restore "${{ github.workspace }}/Server/GPSS Server.csproj"
+      #    dotnet restore "${{ github.workspace }}/Client/GPSS Client.csproj"
+      #    dotnet workload restore "${{ github.workspace }}/Server/GPSS Server.csproj"
+      #    dotnet workload restore "${{ github.workspace }}/Client/GPSS Client.csproj"
         
-      - name: Build GPSS
-        shell: bash
-        id: gpss-build
-        run: |
-          dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release --self-contained true \
-            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
-            -p:EnableCompressionInSingleFile=true \
-            -p:DebugType=None -p:DebugSymbols=false \
-            -r "win-x64"
-          dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release --self-contained true \
-            -p:PublishReadyToRun=true -p:PublishSingleFile=true \
-            -p:EnableCompressionInSingleFile=true \
-            -p:DebugType=None -p:DebugSymbols=false \
-            -r "win-x64" -f "net9.0-windows10.0.19041.0"
+      #- name: Build GPSS
+      #  shell: bash
+      #  run: |
+      #    dotnet publish "${{ github.workspace }}/Server/GPSS Server.csproj" -c Release --self-contained true \
+      #      -p:PublishReadyToRun=true -p:PublishSingleFile=true \
+      #      -p:EnableCompressionInSingleFile=true \
+      #      -p:DebugType=None -p:DebugSymbols=false \
+      #      -r "win-x64"
+      #    dotnet publish "${{ github.workspace }}/Client/GPSS Client.csproj" -c Release --self-contained true \
+      #      -p:PublishReadyToRun=true -p:PublishSingleFile=true \
+      #      -p:EnableCompressionInSingleFile=true \
+      #      -p:DebugType=None -p:DebugSymbols=false \
+      #      -r "win-x64" -f "net9.0-windows10.0.19041.0"
      
   commit-and-push:
     needs: build
