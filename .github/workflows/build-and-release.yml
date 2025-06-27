@@ -81,7 +81,7 @@ jobs:
           EXECUTABLE_DIR="./output/${EXECUTABLE_NAME} ${{ matrix.output }}"
           echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
           echo "executable_name=$EXECUTABLE_NAME" >> $GITHUB_OUTPUT
-          echo "executable_dir=$OUTPUT_PATH" >> $GITHUB_OUTPUT
+          echo "executable_dir=$EXECUTABLE_DIR" >> $GITHUB_OUTPUT
 
       - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
         shell: bash
