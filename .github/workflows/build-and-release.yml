@@ -15,24 +15,26 @@ jobs:
   build:
     name: Build ${{ matrix.project }} for ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
 
     strategy:
       matrix:
         include:
           - os: ubuntu-latest
             arch: linux-x64
-            output: linux64
+            output: "Linux (x64)"
             project: server
           - os: ubuntu-latest
             arch: linux-arm64
-            output: linux-arm64
+            output: "Linux (arm64)"
             project: server
           - os: windows-latest
             arch: win-x64
-            output: win64
+            output: "Windows (x64)"
             project: server
           - os: windows-latest
-            arch: win-x64
+            arch: "Windows (x64)"
             output: win64
             project: client
       fail-fast: true
@@ -63,12 +65,12 @@ jobs:
         
       - name: Restore NuGet dependencies for GPSS
         if: runner.os == 'Windows'
-        run: nuget restore ${{ github.workspace }}/GPSS.sln -NoCache
+        run: nuget restore "${{ github.workspace }}/GPSS.sln" -NoCache
 
-      - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
+      - name: Setup environment variables
+        id: setup_env
         shell: bash
         run: |
-          PROJECT_PATH=""
           if [ "${{ matrix.project }}" = "server" ]; then
             PROJECT_PATH="Server/GPSS Server.csproj"
             EXECUTABLE_NAME="GPSS Server"
@@ -76,31 +78,36 @@ jobs:
             PROJECT_PATH="Client/GPSS Client.csproj"
             EXECUTABLE_NAME="GPSS Client"
           fi
-          FRAMEWORK=""
+          EXECUTABLE_DIR="./output/${EXECUTABLE_NAME} ${{ matrix.output }}"
+          echo "project_path=$PROJECT_PATH" >> $GITHUB_OUTPUT
+          echo "executable_name=$EXECUTABLE_NAME" >> $GITHUB_OUTPUT
+          echo "executable_dir=$OUTPUT_PATH" >> $GITHUB_OUTPUT
+
+      - name: Publish ${{ matrix.project }} ${{ matrix.arch }}
+        shell: bash
+        run: |
           if [ "${{ matrix.project }}" = "client" ]; then
             FRAMEWORK="-f net9.0-windows10.0.19041.0"
+          else
+            FRAMEWORK=""
           fi
-          dotnet publish "$PROJECT_PATH" -c Release -o ./output/${{ matrix.output }}-${{ matrix.project }} --self-contained true \
+          dotnet publish "${{ steps.setup_env.outputs.project_path }}" -c Release -o "${{ steps.setup_env.outputs.executable_dir }}" --self-contained true \
             -p:PublishReadyToRun=true -p:PublishSingleFile=true \
             -p:EnableCompressionInSingleFile=true \
             -p:DebugType=None -p:DebugSymbols=false \
-            -r ${{ matrix.arch }} $FRAMEWORK
+            -r "${{ matrix.arch }}" $FRAMEWORK
 
       - name: Set execute permissions (Linux/macOS)
         if: runner.os != 'Windows'
         run: |
-          EXECUTABLE="GPSS Server"
-          if [ "${{ matrix.project }}" = "client" ]; then
-            EXECUTABLE="GPSS Client"
-          fi
-          chmod +x "./output/${{ matrix.output }}-${{ matrix.project }}/${EXECUTABLE}"
+          chmod +x "${{ steps.setup_env.outputs.executable_dir }}/${{ steps.setup_env.outputs.executable_name }}"
 
       - name: Create ZIP archive
         shell: bash
         run: |
           cd output
-          ZIPNAME="../${{ matrix.output }}-${{ matrix.project }}.zip"
-          DIRNAME="${{ matrix.output }}-${{ matrix.project }}"
+          ZIPNAME="../${{ steps.setup_env.outputs.executable_name }} ${{ matrix.output }}.zip"
+          DIRNAME="${{ steps.setup_env.outputs.executable_name }} ${{ matrix.output }}"
           if [ "${{ runner.os }}" = "Windows" ]; then
             7z a -tzip "$ZIPNAME" "$DIRNAME"/*
           else
@@ -110,13 +117,15 @@ jobs:
       - name: Upload Build Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.output }}-${{ matrix.project }}
-          path: ${{ matrix.output }}-${{ matrix.project }}.zip
+          name: "${{ steps.setup_env.outputs.executable_name }} ${{ matrix.output }}"
+          path: "${{ steps.setup_env.outputs.executable_name }} ${{ matrix.output }}.zip"
           retention-days: 1
 
   check-tag:
     name: Check if tag is on master
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     if: startsWith(github.ref, 'refs/tags/v')
     outputs:
       is_master: ${{ steps.check.outputs.is_master }}
@@ -141,6 +150,8 @@ jobs:
     name: Create Release
     needs: [build, check-tag]
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     if: needs.check-tag.outputs.is_master == 'true'
 
     steps:

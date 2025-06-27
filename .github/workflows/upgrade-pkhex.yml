@@ -9,6 +9,8 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: true
 
@@ -81,13 +83,19 @@ jobs:
         run: |
           msbuild "${{ github.workspace }}/Server/GPSS Server.csproj" /p:Configuration=Release /p:Platform="Any CPU" /p:DebugType=None /p:DebugSymbols=false
           msbuild "${{ github.workspace }}/Client/GPSS Client.csproj" /p:Configuration=Release /p:Platform="Any CPU" /p:DebugType=None /p:DebugSymbols=false
-        # Bad idea to leave this on?!
-        continue-on-error: false
         id: gpss-build
-        
-      # If the build was successful, we're good to commit the new DLLs.
+     
+  commit-and-push:
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    if: needs.build.outputs.gpss-build == 'success'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Commit and Push DLLs
-        if: steps.gpss-build.outcome == 'success'
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
