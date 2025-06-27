@@ -11,7 +11,7 @@ namespace GPSS_Server.Controllers
     /// </summary>
     [ApiController]
     [Route("/api/v2/pksm")]
-    public class LegalityController(ServerConfig config, IMemoryCache cache, ILogger<LegalityController> logger) : ControllerBase
+    public class LegalityController(ConfigHolder config, IMemoryCache cache, ILogger<LegalityController> logger) : ControllerBase
     {
         /// <summary>
         /// The Check.
@@ -50,7 +50,7 @@ namespace GPSS_Server.Controllers
             cache.Set(cacheKey, (object)result, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(result),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.CachePokemon)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
             });
 
             logger.LogInformation("Legality check successful. Response cached under key: {CacheKey}", cacheKey);
@@ -96,7 +96,7 @@ namespace GPSS_Server.Controllers
             cache.Set(cacheKey, (object)result, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(result),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.CachePokemon)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
             });
 
             logger.LogInformation("Legalize successful. Response cached under key: {CacheKey}", cacheKey);
