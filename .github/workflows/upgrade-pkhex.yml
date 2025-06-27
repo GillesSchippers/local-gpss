@@ -119,6 +119,7 @@ jobs:
             "Shared/Deps/PKHeX.Core.dll"
             "Shared/Deps/PKHeX.Core.AutoMod.dll"
           assignees: "GillesSchippers"
+          reviewers: "GillesSchippers"
           sign-commits: true
           delete-branch: true
           signoff: true
