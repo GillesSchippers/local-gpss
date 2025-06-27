@@ -1,6 +1,8 @@
 name: Upgrade PKHeX
 
 on:
+  schedule:
+    - cron: '0 12 * * 6'  # every week on Saturday at 12:00 UTC
   workflow_dispatch:
 
 permissions:
