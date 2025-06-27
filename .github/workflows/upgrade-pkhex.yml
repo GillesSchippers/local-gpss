@@ -8,6 +8,7 @@ permissions:
 
 jobs:
   build:
+    name: Build and update PKHeX and verify GPSS still compiles
     runs-on: windows-latest
     permissions:
       contents: read
@@ -101,4 +102,4 @@ jobs:
           git config --global user.email "github-actions@github.com"
           git add deps/PKHeX.Core.dll deps/PKHeX.Core.AutoMod.dll
           git commit -m "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll"
-          git push origin master
+          git push HEAD:${{ github.ref_name }}
