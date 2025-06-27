@@ -529,7 +529,7 @@
                     .Where(f => Path.GetExtension(f).StartsWith(".pk", StringComparison.InvariantCultureIgnoreCase))
                     .ToList();
 
-                if (!pkFiles.Any())
+                if (pkFiles.Count == 0)
                 {
                     await ShowAlert("Error", "No valid Pokémon files dropped.", "OK");
                     return;
