@@ -53,8 +53,7 @@
                 if (File.Exists(ConfigFilePath))
                 {
                     var json = File.ReadAllText(ConfigFilePath);
-                    var config = JsonSerializer.Deserialize<ServerConfig>(json);
-                    if (config != null)
+                    if (JsonSerializer.Deserialize<ServerConfig>(json) is { } config)
                         return config;
                 }
             }
@@ -74,10 +73,7 @@
             try
             {
 #if !DEBUG
-                var json = JsonSerializer.Serialize(config);
-                File.WriteAllText(ConfigFilePath, json);
-#else
-                return; // Skip saving in debug mode to avoid file write issues
+                File.WriteAllText(ConfigFilePath, JsonSerializer.Serialize(config));
 #endif
             }
             catch { /* Ignore */ }
@@ -89,18 +85,10 @@
         /// <typeparam name="TProp">.</typeparam>
         /// <param name="propertySelector">The propertySelector<see cref="Expression{Func{ServerConfig, TProp}}"/>.</param>
         /// <returns>The <see cref="TProp"/>.</returns>
-        public TProp Get<TProp>(Expression<Func<ServerConfig, TProp>> propertySelector)
-        {
-            if (propertySelector.Body is MemberExpression memberExpr)
-            {
-                var propInfo = memberExpr.Member as PropertyInfo;
-                if (propInfo != null)
-                {
-                    return (TProp)propInfo.GetValue(Config)!;
-                }
-            }
-            throw new ArgumentException("Invalid property selector");
-        }
+        public TProp Get<TProp>(Expression<Func<ServerConfig, TProp>> propertySelector) =>
+            propertySelector.Body is MemberExpression { Member: PropertyInfo propInfo }
+                ? (TProp)propInfo.GetValue(Config)!
+                : throw new ArgumentException("Invalid property selector");
 
         /// <summary>
         /// The Set.
