@@ -43,7 +43,7 @@ namespace GPSS_Server.Controllers
                 return BadRequest(result);
             }
 
-            cache.Set(cacheKey, (object)result, new MemoryCacheEntryOptions
+            Helpers.SetAndTrackSearchCache(cache, cacheKey, (object)result, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(result),
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
@@ -84,7 +84,7 @@ namespace GPSS_Server.Controllers
                 return BadRequest(result);
             }
 
-            cache.Set(cacheKey, (object)result, new MemoryCacheEntryOptions
+            Helpers.SetAndTrackSearchCache(cache, cacheKey, (object)result, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(result),
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))

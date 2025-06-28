@@ -7,7 +7,7 @@ namespace GPSS_Server.Utils
     using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
     using PKHeX.Core.AutoMod;
-    using System.Collections;
+    using System.Collections.Concurrent;
     using System.Dynamic;
     using System.Net;
     using System.Runtime.InteropServices;
@@ -21,6 +21,11 @@ namespace GPSS_Server.Utils
     /// </summary>
     public static class Helpers
     {
+        /// <summary>
+        /// Defines the SearchCacheKeys.
+        /// </summary>
+        private static readonly ConcurrentDictionary<string, byte> SearchCacheKeys = new();
+
         /// <summary>
         /// The Init.
         /// </summary>
@@ -279,56 +284,56 @@ namespace GPSS_Server.Utils
             MessagePackSerializer.Serialize(obj, MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance)).Length;
 
         /// <summary>
+        /// The SetAndTrackSearchCache.
+        /// </summary>
+        /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
+        /// <param name="key">The key<see cref="string"/>.</param>
+        /// <param name="value">The value<see cref="object"/>.</param>
+        /// <param name="options">The options<see cref="MemoryCacheEntryOptions"/>.</param>
+        public static void SetAndTrackSearchCache(
+            IMemoryCache cache,
+            string key,
+            object value,
+            MemoryCacheEntryOptions options)
+        {
+            cache.Set(key, value, options);
+            AddSearchCacheKey(key);
+        }
+
+        /// <summary>
+        /// The AddSearchCacheKey.
+        /// </summary>
+        /// <param name="key">The key<see cref="string"/>.</param>
+        private static void AddSearchCacheKey(string key)
+        {
+            SearchCacheKeys.TryAdd(key, 0);
+        }
+
+        /// <summary>
+        /// The RemoveSearchCacheKey.
+        /// </summary>
+        /// <param name="key">The key<see cref="string"/>.</param>
+        private static void RemoveSearchCacheKey(string key)
+        {
+            SearchCacheKeys.TryRemove(key, out _);
+        }
+
+        /// <summary>
         /// The InvalidateSearchCache.
         /// </summary>
         /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
         /// <param name="entityType">The entityType<see cref="string"/>.</param>
         public static void InvalidateSearchCache(IMemoryCache cache, string entityType)
         {
-            var keysToRemove = new List<object>();
-            var cacheField = typeof(MemoryCache).GetField("_entries", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (cacheField?.GetValue(cache) is IDictionary entries)
+            var keysToRemove = SearchCacheKeys.Keys
+                .Where(k => k.StartsWith(entityType + ":", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var key in keysToRemove)
             {
-                foreach (DictionaryEntry entry in entries)
-                {
-                    if (entry.Key is string key)
-                    {
-                        // Key format: "{entityType}:{page}:{amount}:{searchBody}"
-                        var parts = key.Split(':', 4);
-                        if (parts.Length < 4)
-                            continue;
-
-                        var keyEntityType = parts[0];
-                        var searchBody = parts[3];
-
-                        // Only consider search cache for the current entityType
-                        if (!string.Equals(keyEntityType, entityType, StringComparison.OrdinalIgnoreCase))
-                            continue;
-
-                        // Try to parse the searchBody as a Search object
-                        bool hasDownloadCode = false;
-                        if (!string.IsNullOrEmpty(searchBody) && searchBody != "{}")
-                        {
-                            try
-                            {
-                                var search = JsonSerializer.Deserialize<Search>(searchBody);
-                                hasDownloadCode = !string.IsNullOrEmpty(search.DownloadCode);
-                            }
-                            catch
-                            {
-                                // If parsing fails, treat as not having DownloadCode
-                                hasDownloadCode = false;
-                            }
-                        }
-
-                        // If it does NOT filter on download code, mark for removal
-                        if (!hasDownloadCode)
-                            keysToRemove.Add(entry.Key);
-                    }
-                }
+                cache.Remove(key);
+                SearchCacheKeys.TryRemove(key, out _);
             }
-            foreach (var k in keysToRemove)
-                cache.Remove(k);
         }
 
         /// <summary>

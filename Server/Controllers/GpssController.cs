@@ -69,7 +69,7 @@ namespace GPSS_Server.Controllers
                     { "total", count },
                     { entityType, items }
                 };
-                cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, result, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(result),
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheSearch))
@@ -127,7 +127,7 @@ namespace GPSS_Server.Controllers
                 if (id.HasValue)
                 {
                     string? code = await database.GetPokemonDownloadCodeAsync(payload.base64);
-                    cache.Set(cacheKey, code, new MemoryCacheEntryOptions
+                    Helpers.SetAndTrackSearchCache(cache, cacheKey, code, new MemoryCacheEntryOptions
                     {
                         Size = Helpers.GetObjectSizeInBytes(code),
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
@@ -139,7 +139,7 @@ namespace GPSS_Server.Controllers
                 var newCode = await Helpers.GenerateDownloadCodeAsync(database, entityType);
                 await database.InsertPokemonAsync(payload.base64, legality.Valid, newCode, generation!);
                 Helpers.InvalidateSearchCacheAsync(cache, entityType);
-                cache.Set(cacheKey, newCode, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, newCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(newCode),
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
@@ -211,7 +211,7 @@ namespace GPSS_Server.Controllers
                     var code = await Helpers.GenerateDownloadCodeAsync(database, "pokemon");
                     id = await database.InsertPokemonAsync(payload.base64, legality.Valid, code, generations[i]);
                     needsCacheInvalidation = true;
-                    cache.Set($"upload:pokemon:{hash}", code, new MemoryCacheEntryOptions
+                    Helpers.SetAndTrackSearchCache(cache, $"upload:pokemon:{hash}", code, new MemoryCacheEntryOptions
                     {
                         Size = Helpers.GetObjectSizeInBytes(code),
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
@@ -239,7 +239,7 @@ namespace GPSS_Server.Controllers
             var bundleCode = await database.CheckIfBundleExistsAsync(ids);
             if (bundleCode != null)
             {
-                cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(bundleCode),
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
@@ -250,7 +250,7 @@ namespace GPSS_Server.Controllers
             bundleCode = await Helpers.GenerateDownloadCodeAsync(database, "bundle");
             await database.InsertBundleAsync(bundleLegal, bundleCode, ((int)minGen!.Value).ToString(), ((int)maxGen!.Value).ToString(), ids);
             Helpers.InvalidateSearchCacheAsync(cache, "bundle");
-            cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
+            Helpers.SetAndTrackSearchCache(cache, bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(bundleCode),
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
@@ -300,7 +300,7 @@ namespace GPSS_Server.Controllers
                     return NotFound(new { message = "Pokemon not found." });
                 }
 
-                cache.Set(cacheKey, pokemon, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, pokemon, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(pokemon),
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
@@ -320,7 +320,7 @@ namespace GPSS_Server.Controllers
                     return NotFound(new { message = "Bundle not found." });
                 }
 
-                cache.Set(cacheKey, bundle, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, bundle, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(bundle),
                     AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
