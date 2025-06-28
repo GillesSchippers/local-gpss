@@ -2,6 +2,7 @@
 {
     using GPSS_Client.Config;
     using GPSS_Client.Services;
+    using GPSS_Client.Forms;
     using PKHeX.Core;
     using System;
     using System.Windows.Forms;
@@ -77,123 +78,45 @@
             var ctrl = new ToolStripMenuItem(Name);
             tools.DropDownItems.Add(ctrl);
 
-            var cTest = new ToolStripMenuItem($"{Name} test upload selected PKM");
-            cTest.Click += async (_, _) =>
-            {
-                try
-                {
-                    var pkm = PKMEditor.PreparePKM();
-                    if (pkm == null)
-                    {
-                        MessageBox.Show("No Pokémon selected.");
-                        return;
-                    }
-                    var bytes = pkm.DecryptedBoxData;
-                    var gen = pkm.Context.Generation().ToString();
-                    var code = await API.UploadPokemonAsync(bytes, gen);
-                    MessageBox.Show(code != null ? $"Upload successful! Code: {code}" : "Upload failed.");
-                }
-                catch (Exception ex)
-                {
-                    MessageBox.Show($"Error: {ex.Message}");
-                }
+            var upload = new ToolStripMenuItem($"{Name} upload active Pokémon");
+            upload.Click += async (_, _) => {
+                await UploadSelectedPKM();
+            };
+            var config = new ToolStripMenuItem($"{Name} config");
+            config.Click += async (_, _) => {
+                using var form = new ConfigForm(Config);
+                form.ShowDialog();
             };
 
-            ctrl.DropDownItems.Add(cTest);
+            ctrl.DropDownItems.Add(upload);
+            ctrl.DropDownItems.Add(config);
             Console.WriteLine($"{Name} added menu items.");
         }
 
         /// <summary>
-        /// The ModifySaveFile.
+        /// The UploadSelectedPKM.
         /// </summary>
-        //private void ModifySaveFile() // Boilerplate
-        //{
-        //    var sav = SaveFileEditor.SAV;
-        //    sav.ModifyBoxes(ModifyPKM);
-        //    SaveFileEditor.ReloadSlots();
-        //}
-
-        /// <summary>
-        /// The ModifyPKM.
-        /// </summary>
-        /// <param name="pk">The pk<see cref="PKM"/>.</param>
-        //public static void ModifyPKM(PKM pk) // Boilerplate
-        //{
-        //    // Make everything Bulbasaur!
-        //    pk.Species = (ushort)Species.Bulbasaur;
-        //    pk.Move1 = (ushort)Move.Pound; // pound
-        //    pk.Move1_PP = 40;
-        //    CommonEdits.SetShiny(pk);
-        //}
-
-        /// <summary>
-        /// The ModifySaveFile.
-        /// </summary>
-        //private void ModifySaveFile() // Boilerplate
-        //{
-        //    var sav = SaveFileEditor.SAV;
-        //    sav.ModifyBoxes(ModifyPKM);
-        //    SaveFileEditor.ReloadSlots();
-        //}
-
-        /// <summary>
-        /// The ModifyPKM.
-        /// </summary>
-        /// <param name="pk">The pk<see cref="PKM"/>.</param>
-        //public static void ModifyPKM(PKM pk) // Boilerplate
-        //{
-        //    // Make everything Bulbasaur!
-        //    pk.Species = (ushort)Species.Bulbasaur;
-        //    pk.Move1 = (ushort)Move.Pound; // pound
-        //    pk.Move1_PP = 40;
-        //    CommonEdits.SetShiny(pk);
-        //}
-
-        /// <summary>
-        /// The ModifySaveFile.
-        /// </summary>
-        //private void ModifySaveFile() // Boilerplate
-        //{
-        //    var sav = SaveFileEditor.SAV;
-        //    sav.ModifyBoxes(ModifyPKM);
-        //    SaveFileEditor.ReloadSlots();
-        //}
-
-        /// <summary>
-        /// The ModifyPKM.
-        /// </summary>
-        /// <param name="pk">The pk<see cref="PKM"/>.</param>
-        //public static void ModifyPKM(PKM pk) // Boilerplate
-        //{
-        //    // Make everything Bulbasaur!
-        //    pk.Species = (ushort)Species.Bulbasaur;
-        //    pk.Move1 = (ushort)Move.Pound; // pound
-        //    pk.Move1_PP = 40;
-        //    CommonEdits.SetShiny(pk);
-        //}
-
-        /// <summary>
-        /// The ModifySaveFile.
-        /// </summary>
-        //private void ModifySaveFile() // Boilerplate
-        //{
-        //    var sav = SaveFileEditor.SAV;
-        //    sav.ModifyBoxes(ModifyPKM);
-        //    SaveFileEditor.ReloadSlots();
-        //}
-
-        /// <summary>
-        /// The ModifyPKM.
-        /// </summary>
-        /// <param name="pk">The pk<see cref="PKM"/>.</param>
-        //public static void ModifyPKM(PKM pk) // Boilerplate
-        //{
-        //    // Make everything Bulbasaur!
-        //    pk.Species = (ushort)Species.Bulbasaur;
-        //    pk.Move1 = (ushort)Move.Pound; // pound
-        //    pk.Move1_PP = 40;
-        //    CommonEdits.SetShiny(pk);
-        //}
+        /// <returns>The <see cref="Task"/>.</returns>
+        private async Task UploadSelectedPKM()
+        {
+            try
+            {
+                var pkm = PKMEditor.PreparePKM();
+                if (pkm == null)
+                {
+                    MessageBox.Show("No Pokémon selected.");
+                    return;
+                }
+                var bytes = pkm.DecryptedBoxData;
+                var gen = pkm.Context.Generation().ToString();
+                var code = await API.UploadPokemonAsync(bytes, gen);
+                MessageBox.Show(code != null ? "upload successful!" : "upload failed.");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Error: {ex.Message}\n\n{ex}");
+            }
+        }
 
         /// <summary>
         /// The NotifySaveLoaded.

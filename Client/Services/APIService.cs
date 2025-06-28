@@ -23,9 +23,14 @@ namespace GPSS_Client.Services
         private readonly ConfigHolder Config;
 
         /// <summary>
-        /// Defines the UserAgent.
+        /// Defines the UserAgentName.
         /// </summary>
-        private const string UserAgent = "PKHeX-GPSS-Agent/v2";
+        private const string UserAgentName = "PKHeX-GPSS";
+
+        /// <summary>
+        /// Defines the UserAgentVersion.
+        /// </summary>
+        private const string UserAgentVersion = "2.0";
 
         /// <summary>
         /// Initializes a new instance of the <see cref="APIService"/> class.
@@ -36,7 +41,7 @@ namespace GPSS_Client.Services
             Config = configHolder;
             Client = new HttpClient();
             Client.DefaultRequestHeaders.UserAgent.Clear();
-            Client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(UserAgent));
+            Client.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue(UserAgentName, UserAgentVersion));
             Client.BaseAddress = new Uri(Config.Get(config => config.GpssUrl).TrimEnd('/'));
 
             // Subscribe to config changes
