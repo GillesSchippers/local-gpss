@@ -12,6 +12,7 @@ namespace GPSS_Server.Utils
     using System.Net;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography;
+    using System.Security.Cryptography.X509Certificates;
     using System.Security.Principal;
     using System.Text;
     using System.Text.Json;
@@ -33,8 +34,7 @@ namespace GPSS_Server.Utils
         {
             if (IsRunningAsAdminOrRoot())
             {
-                Console.WriteLine("Error: Running this application as administrator or root is not supported. Please run as a standard user.");
-                Environment.Exit(1);
+                throw new InvalidOperationException("Running this application as administrator or root is not supported. Please run as a standard user.");
             }
 
             EncounterEvent.RefreshMGDB(string.Empty);
@@ -341,9 +341,94 @@ namespace GPSS_Server.Utils
         /// </summary>
         /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
         /// <param name="entityType">The entityType<see cref="string"/>.</param>
-        public static void InvalidateSearchCacheAsync(IMemoryCache cache, string entityType)
+        /// <returns>The <see cref="Task"/>.</returns>
+        public static Task InvalidateSearchCacheAsync(IMemoryCache cache, string entityType)
         {
-            Task.Run(() => InvalidateSearchCache(cache, entityType));
+            return Task.Run(() => InvalidateSearchCache(cache, entityType));
+        }
+
+        /// <summary>
+        /// The IsPKSM.
+        /// </summary>
+        /// <param name="request">The request<see cref="HttpRequest?"/>.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool IsPKSM(HttpRequest? request)
+        {
+            if (request == null || request.Headers == null)
+                return false;
+
+            bool userAgentMatch = false;
+            if (request.Headers.TryGetValue("User-Agent", out var userAgents))
+            {
+                userAgentMatch = userAgents.Any(ua =>
+                    ua != null && ua.Contains("PKSM-curl", StringComparison.OrdinalIgnoreCase));
+            }
+
+            bool pksmModeMatch = false;
+            if (request.Headers.TryGetValue("pksm-mode", out var mode))
+            {
+                pksmModeMatch = mode.Any(v => v != null && v.Equals("yes", StringComparison.OrdinalIgnoreCase));
+            }
+
+            return userAgentMatch && pksmModeMatch;
+        }
+
+        // Credit: https://stackoverflow.com/q/62000006
+
+        /// <summary>
+        /// The GenerateSelfSignedCertificate.
+        /// </summary>
+        /// <param name="address">The address<see cref="IPAddress?"/>.</param>
+        /// <returns>The <see cref="X509Certificate2"/>.</returns>
+        public static X509Certificate2 GenerateSelfSignedCertificate(IPAddress? address = null)
+        {
+            var sanBuilder = new SubjectAlternativeNameBuilder();
+            sanBuilder.AddIpAddress(IPAddress.Any);
+            sanBuilder.AddIpAddress(IPAddress.Loopback);
+            sanBuilder.AddIpAddress(IPAddress.IPv6Loopback);
+
+            if (address != null)
+            {
+                sanBuilder.AddIpAddress(address);
+            }
+
+            sanBuilder.AddDnsName("localhost");
+            sanBuilder.AddDnsName(Environment.MachineName);
+
+            var distinguishedName = new X500DistinguishedName("CN=localhost");
+
+            using RSA rsa = RSA.Create(2048);
+            var request = new CertificateRequest(
+                distinguishedName,
+                rsa,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+
+            request.CertificateExtensions.Add(
+                new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DataEncipherment |
+                    X509KeyUsageFlags.KeyEncipherment |
+                    X509KeyUsageFlags.DigitalSignature,
+                    critical: false));
+
+            request.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(
+                    [new Oid("1.3.6.1.5.5.7.3.1")],
+                    critical: false));
+
+            request.CertificateExtensions.Add(sanBuilder.Build());
+
+            var notBefore = DateTimeOffset.UtcNow.AddDays(-1);
+            var notAfter = DateTimeOffset.UtcNow.AddYears(30);
+            var certificate = request.CreateSelfSigned(notBefore, notAfter);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                certificate.FriendlyName = "localhost";
+            }
+
+#pragma warning disable SYSLIB0057 // Type or member is obsolete
+            return new X509Certificate2(certificate.Export(X509ContentType.Pfx));
         }
     }
 }

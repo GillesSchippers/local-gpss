@@ -114,6 +114,40 @@ namespace GPSS_Server.Datastore
         }
 
         /// <summary>
+        /// The DeleteByCodeAsync.
+        /// </summary>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{bool}"/>.</returns>
+        public async Task<bool> DeleteByCodeAsync(string entityType, string code)
+        {
+            switch (entityType.ToLowerInvariant())
+            {
+                case "pokemon":
+                    {
+                        var pokemon = await db.Pokemons.FirstOrDefaultAsync(p => p.DownloadCode == code);
+                        if (pokemon == null)
+                            return false;
+                        db.Pokemons.Remove(pokemon);
+                        await db.SaveChangesAsync();
+                        return true;
+                    }
+                case "bundle":
+                case "bundles":
+                    {
+                        var bundle = await db.Bundles.FirstOrDefaultAsync(b => b.DownloadCode == code);
+                        if (bundle == null)
+                            return false;
+                        db.Bundles.Remove(bundle);
+                        await db.SaveChangesAsync();
+                        return true;
+                    }
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
         /// The ListPokemonsAsync.
         /// </summary>
         /// <param name="page">The page<see cref="int"/>.</param>

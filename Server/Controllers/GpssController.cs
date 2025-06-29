@@ -4,6 +4,7 @@ namespace GPSS_Server.Controllers
     using GPSS_Server.Datastore;
     using GPSS_Server.Models;
     using GPSS_Server.Utils;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
@@ -14,6 +15,8 @@ namespace GPSS_Server.Controllers
     /// </summary>
     [ApiController]
     [Route("/api/v2/gpss")]
+    [Produces("application/json")]
+    [AllowAnonymous]
     public class GpssController(ConfigHolder config, Database database, IMemoryCache cache) : ControllerBase
     {
         /// <summary>
@@ -138,7 +141,7 @@ namespace GPSS_Server.Controllers
                 var legality = new LegalityAnalysis(payload.pokemon);
                 var newCode = await Helpers.GenerateDownloadCodeAsync(database, entityType);
                 await database.InsertPokemonAsync(payload.base64, legality.Valid, newCode, generation!);
-                Helpers.InvalidateSearchCacheAsync(cache, entityType);
+                await Helpers.InvalidateSearchCacheAsync(cache, entityType);
                 Helpers.SetAndTrackSearchCache(cache, cacheKey, newCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(newCode),
@@ -225,7 +228,7 @@ namespace GPSS_Server.Controllers
             }
 
             if (needsCacheInvalidation)
-                Helpers.InvalidateSearchCacheAsync(cache, "pokemon");
+                await Helpers.InvalidateSearchCacheAsync(cache, "pokemon");
 
             var bundleKeyRaw = string.Join(",", pokemonHashes);
             var bundleKeyHash = Helpers.ComputeSha256Hash(bundleKeyRaw);
@@ -249,7 +252,7 @@ namespace GPSS_Server.Controllers
 
             bundleCode = await Helpers.GenerateDownloadCodeAsync(database, "bundle");
             await database.InsertBundleAsync(bundleLegal, bundleCode, ((int)minGen!.Value).ToString(), ((int)maxGen!.Value).ToString(), ids);
-            Helpers.InvalidateSearchCacheAsync(cache, "bundle");
+            await Helpers.InvalidateSearchCacheAsync(cache, "bundle");
             Helpers.SetAndTrackSearchCache(cache, bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(bundleCode),
@@ -263,13 +266,9 @@ namespace GPSS_Server.Controllers
         /// </summary>
         /// <param name="entityType">The entityType<see cref="string"/>.</param>
         /// <param name="code">The code<see cref="string"/>.</param>
-        /// <param name="download">The download<see cref="bool"/>.</param>
         /// <returns>The <see cref="Task{IActionResult}"/>.</returns>
         [HttpGet("download/{entityType}/{code}")]
-        public async Task<IActionResult> Download(
-            [FromRoute] string entityType,
-            [FromRoute] string code,
-            [FromQuery] bool download = false)
+        public async Task<IActionResult> Download([FromRoute] string entityType, [FromRoute] string code)
         {
             if (!_supportedEntities.Contains(entityType))
             {
@@ -280,12 +279,12 @@ namespace GPSS_Server.Controllers
                 entityType == "bundles" || entityType == "bundle" ? "bundle" : "pokemon",
                 code);
 
-            if (!download)
+            if (Helpers.IsPKSM(Request))
             {
                 return Ok();
             }
 
-            string cacheKey = $"download:{entityType}:{code}:download={download}";
+            string cacheKey = $"download:{entityType}:{code}";
 
             if (entityType == "pokemon")
             {

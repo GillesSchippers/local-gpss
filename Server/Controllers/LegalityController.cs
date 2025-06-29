@@ -3,6 +3,7 @@ namespace GPSS_Server.Controllers
     using GPSS_Server.Config;
     using GPSS_Server.Services;
     using GPSS_Server.Utils;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Caching.Memory;
 
@@ -11,6 +12,8 @@ namespace GPSS_Server.Controllers
     /// </summary>
     [ApiController]
     [Route("/api/v2/pksm")]
+    [Produces("application/json")]
+    [AllowAnonymous]
     public class LegalityController(ConfigHolder config, IMemoryCache cache) : ControllerBase
     {
         /// <summary>
