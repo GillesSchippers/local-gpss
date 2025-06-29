@@ -35,13 +35,19 @@
         /// Gets or sets the GpssHttpsCert.
         /// </summary>
         [JsonPropertyName("gpss_https_cert")]
-        public string? GpssHttpsCert { get; set; }
+        public string? GpssHttpsCert { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the GpssHttpsKey.
         /// </summary>
         [JsonPropertyName("gpss_https_key")]
-        public string? GpssHttpsKey { get; set; }
+        public string? GpssHttpsKey { get; set; } = null;
+
+        /// <summary>
+        /// Gets or sets the GpssJwtKey.
+        /// </summary>
+        [JsonPropertyName("gpss_jwt_key")]
+        public string? GpssJwtKey { get; set; } = null;
 
         /// <summary>
         /// Gets or sets the MySqlHost.

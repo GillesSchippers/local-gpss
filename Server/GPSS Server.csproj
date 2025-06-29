@@ -6,7 +6,17 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<StaticWebAssetsEnabled>false</StaticWebAssetsEnabled>
-		<Version>1.4.2</Version>
+		<Version>1.5.0</Version>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)'=='Release'">
+		<DebugSymbols>False</DebugSymbols>
+		<DebugType>None</DebugType>
+
+		<EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+
+		<PublishSingleFile>true</PublishSingleFile>
+		<PublishReadyToRun>true</PublishReadyToRun>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -15,6 +25,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="MessagePack" Version="3.1.4" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.6" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.6">
 			<PrivateAssets>all</PrivateAssets>
@@ -29,17 +40,8 @@
 			<HintPath>..\Shared\Deps\PKHeX.Core.dll</HintPath>
 		</Reference>
 		<Reference Include="PKHeX.Core.AutoMod">
-			<HintPath>..\Shared\Deps\PKHeX.Core.AutoMod.dll</HintPath>
+			<HintPath>..\Shared\Deps\Server\PKHeX.Core.AutoMod.dll</HintPath>
 		</Reference>
 	</ItemGroup>
-
-	<ItemGroup>
-		<Content Update="Output\**" CopyToPublishDirectory="Never" />
-	</ItemGroup>
-
-	<PropertyGroup Condition="'$(Configuration)'=='Release'">
-		<DebugSymbols>False</DebugSymbols>
-		<DebugType>None</DebugType>
-	</PropertyGroup>
 
 </Project>

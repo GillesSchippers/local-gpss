@@ -1,6 +1,5 @@
-namespace GPSS_Client.Config
+﻿namespace GPSS_Client.Config
 {
-    using System.ComponentModel;
     using System.Text.Json.Serialization;
 
     /// <summary>
@@ -9,10 +8,9 @@ namespace GPSS_Client.Config
     public class ClientConfig
     {
         /// <summary>
-        /// Gets or sets the ApiUrl.
+        /// Gets or sets the GpssUrl.
         /// </summary>
-        [JsonPropertyName("api_url")]
-        [DisplayName("API URL")]
-        public string ApiUrl { get; set; } = "https://pksm.gustav-serv.net";
+        [JsonPropertyName("gpss_url")]
+        public string GpssUrl { get; set; } = "https://pksm.gustav-serv.net";
     }
 }

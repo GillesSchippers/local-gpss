@@ -90,7 +90,7 @@ jobs:
 
       - name: Prepare dlls
         run: |
-          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" "${{ github.workspace }}\Shared\Deps" /Y
+          xcopy "${{ github.workspace }}\PKHeX-Plugins\PKHeX.Core.AutoMod\bin\Any CPU\Release\net9.0\PKHeX.Core.AutoMod.dll" "${{ github.workspace }}\Shared\Deps\Server" /Y
           xcopy "${{ github.workspace }}\PKHeX\PKHeX.Core\bin\Any CPU\Release\net9.0\PKHeX.Core.dll" "${{ github.workspace }}\Shared\Deps" /Y
      
   commit-and-push:
@@ -117,7 +117,7 @@ jobs:
           commit-message: "Update PKHeX.Core.dll and PKHeX.Core.AutoMod.dll to the latest version from PKHeX-Plugins and PKHeX."
           add-paths: |
             "Shared/Deps/PKHeX.Core.dll"
-            "Shared/Deps/PKHeX.Core.AutoMod.dll"
+            "Shared/Deps/Server/PKHeX.Core.AutoMod.dll"
           assignees: "GillesSchippers"
           reviewers: "GillesSchippers"
           sign-commits: true

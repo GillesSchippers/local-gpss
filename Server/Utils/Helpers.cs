@@ -6,12 +6,12 @@ namespace GPSS_Server.Utils
     using MessagePack.Resolvers;
     using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
-    using PKHeX.Core.AutoMod;
-    using System.Collections;
+    using System.Collections.Concurrent;
     using System.Dynamic;
     using System.Net;
     using System.Runtime.InteropServices;
     using System.Security.Cryptography;
+    using System.Security.Cryptography.X509Certificates;
     using System.Security.Principal;
     using System.Text;
     using System.Text.Json;
@@ -22,22 +22,9 @@ namespace GPSS_Server.Utils
     public static class Helpers
     {
         /// <summary>
-        /// The Init.
+        /// Defines the SearchCacheKeys.
         /// </summary>
-        public static void Init()
-        {
-            if (IsRunningAsAdminOrRoot())
-            {
-                Console.WriteLine("Error: Running this application as administrator or root is not supported. Please run as a standard user.");
-                Environment.Exit(1);
-            }
-
-            EncounterEvent.RefreshMGDB(string.Empty);
-            RibbonStrings.ResetDictionary(GameInfo.Strings.ribbons);
-            Legalizer.EnableEasterEggs = false;
-
-            return;
-        }
+        private static readonly ConcurrentDictionary<string, byte> SearchCacheKeys = new();
 
         /// <summary>
         /// The EntityContextFromString.
@@ -279,56 +266,56 @@ namespace GPSS_Server.Utils
             MessagePackSerializer.Serialize(obj, MessagePackSerializerOptions.Standard.WithResolver(ContractlessStandardResolver.Instance)).Length;
 
         /// <summary>
+        /// The SetAndTrackSearchCache.
+        /// </summary>
+        /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
+        /// <param name="key">The key<see cref="string"/>.</param>
+        /// <param name="value">The value<see cref="object"/>.</param>
+        /// <param name="options">The options<see cref="MemoryCacheEntryOptions"/>.</param>
+        public static void SetAndTrackSearchCache(
+            IMemoryCache cache,
+            string key,
+            object value,
+            MemoryCacheEntryOptions options)
+        {
+            cache.Set(key, value, options);
+            AddSearchCacheKey(key);
+        }
+
+        /// <summary>
+        /// The AddSearchCacheKey.
+        /// </summary>
+        /// <param name="key">The key<see cref="string"/>.</param>
+        private static void AddSearchCacheKey(string key)
+        {
+            SearchCacheKeys.TryAdd(key, 0);
+        }
+
+        /// <summary>
+        /// The RemoveSearchCacheKey.
+        /// </summary>
+        /// <param name="key">The key<see cref="string"/>.</param>
+        private static void RemoveSearchCacheKey(string key)
+        {
+            SearchCacheKeys.TryRemove(key, out _);
+        }
+
+        /// <summary>
         /// The InvalidateSearchCache.
         /// </summary>
         /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
         /// <param name="entityType">The entityType<see cref="string"/>.</param>
         public static void InvalidateSearchCache(IMemoryCache cache, string entityType)
         {
-            var keysToRemove = new List<object>();
-            var cacheField = typeof(MemoryCache).GetField("_entries", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            if (cacheField?.GetValue(cache) is IDictionary entries)
+            var keysToRemove = SearchCacheKeys.Keys
+                .Where(k => k.StartsWith(entityType + ":", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            foreach (var key in keysToRemove)
             {
-                foreach (DictionaryEntry entry in entries)
-                {
-                    if (entry.Key is string key)
-                    {
-                        // Key format: "{entityType}:{page}:{amount}:{searchBody}"
-                        var parts = key.Split(':', 4);
-                        if (parts.Length < 4)
-                            continue;
-
-                        var keyEntityType = parts[0];
-                        var searchBody = parts[3];
-
-                        // Only consider search cache for the current entityType
-                        if (!string.Equals(keyEntityType, entityType, StringComparison.OrdinalIgnoreCase))
-                            continue;
-
-                        // Try to parse the searchBody as a Search object
-                        bool hasDownloadCode = false;
-                        if (!string.IsNullOrEmpty(searchBody) && searchBody != "{}")
-                        {
-                            try
-                            {
-                                var search = JsonSerializer.Deserialize<Search>(searchBody);
-                                hasDownloadCode = !string.IsNullOrEmpty(search.DownloadCode);
-                            }
-                            catch
-                            {
-                                // If parsing fails, treat as not having DownloadCode
-                                hasDownloadCode = false;
-                            }
-                        }
-
-                        // If it does NOT filter on download code, mark for removal
-                        if (!hasDownloadCode)
-                            keysToRemove.Add(entry.Key);
-                    }
-                }
+                cache.Remove(key);
+                SearchCacheKeys.TryRemove(key, out _);
             }
-            foreach (var k in keysToRemove)
-                cache.Remove(k);
         }
 
         /// <summary>
@@ -336,9 +323,94 @@ namespace GPSS_Server.Utils
         /// </summary>
         /// <param name="cache">The cache<see cref="IMemoryCache"/>.</param>
         /// <param name="entityType">The entityType<see cref="string"/>.</param>
-        public static void InvalidateSearchCacheAsync(IMemoryCache cache, string entityType)
+        /// <returns>The <see cref="Task"/>.</returns>
+        public static Task InvalidateSearchCacheAsync(IMemoryCache cache, string entityType)
         {
-            Task.Run(() => InvalidateSearchCache(cache, entityType));
+            return Task.Run(() => InvalidateSearchCache(cache, entityType));
+        }
+
+        /// <summary>
+        /// The IsPKSM.
+        /// </summary>
+        /// <param name="request">The request<see cref="HttpRequest?"/>.</param>
+        /// <returns>The <see cref="bool"/>.</returns>
+        public static bool IsPKSM(HttpRequest? request)
+        {
+            if (request == null || request.Headers == null)
+                return false;
+
+            bool userAgentMatch = false;
+            if (request.Headers.TryGetValue("User-Agent", out var userAgents))
+            {
+                userAgentMatch = userAgents.Any(ua =>
+                    ua != null && ua.Contains("PKSM-curl", StringComparison.OrdinalIgnoreCase));
+            }
+
+            bool pksmModeMatch = false;
+            if (request.Headers.TryGetValue("pksm-mode", out var mode))
+            {
+                pksmModeMatch = mode.Any(v => v != null && v.Equals("yes", StringComparison.OrdinalIgnoreCase));
+            }
+
+            return userAgentMatch && pksmModeMatch;
+        }
+
+        // Credit: https://stackoverflow.com/q/62000006
+
+        /// <summary>
+        /// The GenerateSelfSignedCertificate.
+        /// </summary>
+        /// <param name="address">The address<see cref="IPAddress?"/>.</param>
+        /// <returns>The <see cref="X509Certificate2"/>.</returns>
+        public static X509Certificate2 GenerateSelfSignedCertificate(IPAddress? address = null)
+        {
+            var sanBuilder = new SubjectAlternativeNameBuilder();
+            sanBuilder.AddIpAddress(IPAddress.Any);
+            sanBuilder.AddIpAddress(IPAddress.Loopback);
+            sanBuilder.AddIpAddress(IPAddress.IPv6Loopback);
+
+            if (address != null)
+            {
+                sanBuilder.AddIpAddress(address);
+            }
+
+            sanBuilder.AddDnsName("localhost");
+            sanBuilder.AddDnsName(Environment.MachineName);
+
+            var distinguishedName = new X500DistinguishedName("CN=localhost");
+
+            using RSA rsa = RSA.Create(2048);
+            var request = new CertificateRequest(
+                distinguishedName,
+                rsa,
+                HashAlgorithmName.SHA256,
+                RSASignaturePadding.Pkcs1);
+
+            request.CertificateExtensions.Add(
+                new X509KeyUsageExtension(
+                    X509KeyUsageFlags.DataEncipherment |
+                    X509KeyUsageFlags.KeyEncipherment |
+                    X509KeyUsageFlags.DigitalSignature,
+                    critical: false));
+
+            request.CertificateExtensions.Add(
+                new X509EnhancedKeyUsageExtension(
+                    [new Oid("1.3.6.1.5.5.7.3.1")],
+                    critical: false));
+
+            request.CertificateExtensions.Add(sanBuilder.Build());
+
+            var notBefore = DateTimeOffset.UtcNow.AddDays(-1);
+            var notAfter = DateTimeOffset.UtcNow.AddYears(30);
+            var certificate = request.CreateSelfSigned(notBefore, notAfter);
+
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                certificate.FriendlyName = "localhost";
+            }
+
+#pragma warning disable SYSLIB0057 // Type or member is obsolete
+            return new X509Certificate2(certificate.Export(X509ContentType.Pfx));
         }
     }
 }

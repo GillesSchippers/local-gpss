@@ -11,17 +11,14 @@ My toolset and fork for interacting with and hosting GPSS.
 - [ ] Add a way to administer the server/database
 - [ ] Provide better search and filtering options
 - [ ] Update documentation
-- [ ] Create and use shared code (Client <-> Server)
 
 ### Client
 
 - [ ] Make interface more user-friendly
-- [ ] Improve pokemon display
 - [ ] Improve overall quality of the client
 - [ ] Update documentation
-- [ ] Create and use shared code (Client <-> Server)
 
-## Puclic server
+## Public server
 
 If you want to test the public server, you can use [`https://pksm.gustav-serv.net`](https://pksm.gustav-serv.net) in your client's config.
 <br>_(The public server is hosted by [@GillesSchippers](https://github.com/GillesSchippers),

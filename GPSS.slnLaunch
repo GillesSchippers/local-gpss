@@ -1,0 +1,12 @@
+[
+  {
+    "Name": "GPSS",
+    "Projects": [
+      {
+        "Path": "Server\\GPSS Server.csproj",
+        "Action": "Start",
+        "DebugTarget": "GPSS Server"
+      }
+    ]
+  }
+]

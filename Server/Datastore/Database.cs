@@ -1,6 +1,5 @@
 namespace GPSS_Server.Datastore
 {
-    using GPSS_Server.Config;
     using GPSS_Server.Models;
     using GPSS_Server.Utils;
     using Microsoft.EntityFrameworkCore;
@@ -54,34 +53,6 @@ namespace GPSS_Server.Datastore
                 .WithMany(b => b.BundlePokemons)
                 .HasForeignKey(bp => bp.BundleId)
                 .OnDelete(DeleteBehavior.Cascade);
-        }
-    }
-
-    /// <summary>
-    /// Defines the <see cref="DatabaseServiceExtensions" />.
-    /// </summary>
-    public static class DatabaseServiceExtensions
-    {
-        /// <summary>
-        /// The AddGpssDatabase.
-        /// </summary>
-        /// <param name="services">The services<see cref="IServiceCollection"/>.</param>
-        /// <param name="config">The config<see cref="ServerConfig"/>.</param>
-        /// <returns>The <see cref="IServiceCollection"/>.</returns>
-        public static IServiceCollection AddGpssDatabase(this IServiceCollection services, ServerConfig config)
-        {
-#if DEBUG
-            // Use in-memory database for debugging/mocking
-            services.AddDbContext<GpssDbContext>(options =>
-                options.UseInMemoryDatabase("MockGpssDb"));
-#else
-            var connectionString = $"Server={config.MySqlHost};Port={config.MySqlPort};User={config.MySqlUser};Password={config.MySqlPassword};Database={config.MySqlDatabase};";
-            services.AddDbContext<GpssDbContext>(options =>
-                options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
-            );
-#endif
-            services.AddScoped<Database>();
-            return services;
         }
     }
 
@@ -140,6 +111,40 @@ namespace GPSS_Server.Datastore
             db.Pokemons.Add(pokemon);
             await db.SaveChangesAsync();
             return pokemon.Id;
+        }
+
+        /// <summary>
+        /// The DeleteByCodeAsync.
+        /// </summary>
+        /// <param name="entityType">The entityType<see cref="string"/>.</param>
+        /// <param name="code">The code<see cref="string"/>.</param>
+        /// <returns>The <see cref="Task{bool}"/>.</returns>
+        public async Task<bool> DeleteByCodeAsync(string entityType, string code)
+        {
+            switch (entityType.ToLowerInvariant())
+            {
+                case "pokemon":
+                    {
+                        var pokemon = await db.Pokemons.FirstOrDefaultAsync(p => p.DownloadCode == code);
+                        if (pokemon == null)
+                            return false;
+                        db.Pokemons.Remove(pokemon);
+                        await db.SaveChangesAsync();
+                        return true;
+                    }
+                case "bundle":
+                case "bundles":
+                    {
+                        var bundle = await db.Bundles.FirstOrDefaultAsync(b => b.DownloadCode == code);
+                        if (bundle == null)
+                            return false;
+                        db.Bundles.Remove(bundle);
+                        await db.SaveChangesAsync();
+                        return true;
+                    }
+                default:
+                    return false;
+            }
         }
 
         /// <summary>

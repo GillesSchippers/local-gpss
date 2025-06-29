@@ -4,6 +4,7 @@ namespace GPSS_Server.Controllers
     using GPSS_Server.Datastore;
     using GPSS_Server.Models;
     using GPSS_Server.Utils;
+    using Microsoft.AspNetCore.Authorization;
     using Microsoft.AspNetCore.Mvc;
     using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
@@ -14,7 +15,9 @@ namespace GPSS_Server.Controllers
     /// </summary>
     [ApiController]
     [Route("/api/v2/gpss")]
-    public class GpssController(ConfigHolder config, Database database, IMemoryCache cache, ILogger<GpssController> logger) : ControllerBase
+    [Produces("application/json")]
+    [AllowAnonymous]
+    public class GpssController(ConfigHolder config, Database database, IMemoryCache cache) : ControllerBase
     {
         /// <summary>
         /// Defines the _supportedEntities.
@@ -33,11 +36,8 @@ namespace GPSS_Server.Controllers
         public async Task<IActionResult> Search([FromRoute] string entityType, [FromBody] JsonElement? searchBody, [FromQuery] int page = 1,
             [FromQuery] int amount = 30)
         {
-            logger.LogInformation("POST /api/v2/gpss/search/{EntityType} | Page: {Page} | Amount: {Amount} | SearchBody: {SearchBody}", entityType, page, amount, searchBody?.ToString());
-
             if (!_supportedEntities.Contains(entityType))
             {
-                logger.LogWarning("Invalid entity type: {EntityType}", entityType);
                 return BadRequest(new { message = "Invalid entity type." });
             }
 
@@ -72,14 +72,13 @@ namespace GPSS_Server.Controllers
                     { "total", count },
                     { entityType, items }
                 };
-                cache.Set(cacheKey, result, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, result, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(result),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheSearch)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheSearch))
                 });
             }
 
-            logger.LogInformation("Search response for {EntityType} | Page: {Page} | Amount: {Amount} | Cached: {FromCache}", entityType, page, amount, fromCache);
             return Ok(result);
         }
 
@@ -91,11 +90,9 @@ namespace GPSS_Server.Controllers
         [HttpPost("upload/{entityType}")]
         public async Task<IActionResult> Upload([FromRoute] string entityType)
         {
-            logger.LogInformation("POST /api/v2/gpss/upload/{EntityType}", entityType);
 
             if (!_supportedEntities.Contains(entityType))
             {
-                logger.LogWarning("Invalid entity type: {EntityType}", entityType);
                 return BadRequest(new { message = "Invalid entity type." });
             }
 
@@ -106,21 +103,18 @@ namespace GPSS_Server.Controllers
             {
                 if (!headers.TryGetValue("generation", out var generation))
                 {
-                    logger.LogWarning("Missing generation header.");
                     return BadRequest(new { error = "missing generation header" });
                 }
 
                 var pkmnFile = files.GetFile("pkmn");
                 if (pkmnFile == null)
                 {
-                    logger.LogWarning("pkmn file is missing.");
                     return BadRequest(new { error = "pkmn file is missing." });
                 }
 
                 var payload = Helpers.PokemonAndBase64FromForm(pkmnFile, Helpers.EntityContextFromString(generation!));
                 if (payload.pokemon == null)
                 {
-                    logger.LogWarning("Not a pokemon file.");
                     return BadRequest(new { error = "not a pokemon" });
                 }
 
@@ -129,7 +123,6 @@ namespace GPSS_Server.Controllers
 
                 if (cache.TryGetValue(cacheKey, out string? cachedCode) && !string.IsNullOrEmpty(cachedCode))
                 {
-                    logger.LogInformation("Upload response served from cache for hash: {Hash}", (object)hash ?? String.Empty);
                     return Ok(new { code = cachedCode });
                 }
 
@@ -137,46 +130,40 @@ namespace GPSS_Server.Controllers
                 if (id.HasValue)
                 {
                     string? code = await database.GetPokemonDownloadCodeAsync(payload.base64);
-                    cache.Set(cacheKey, code, new MemoryCacheEntryOptions
+                    Helpers.SetAndTrackSearchCache(cache, cacheKey, code, new MemoryCacheEntryOptions
                     {
                         Size = Helpers.GetObjectSizeInBytes(code),
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                     });
-                    logger.LogInformation("Pokemon already exists. Returning code: {Code}", code);
                     return Ok(new { code });
                 }
 
                 var legality = new LegalityAnalysis(payload.pokemon);
                 var newCode = await Helpers.GenerateDownloadCodeAsync(database, entityType);
                 await database.InsertPokemonAsync(payload.base64, legality.Valid, newCode, generation!);
-                Helpers.InvalidateSearchCacheAsync(cache, entityType);
-                cache.Set(cacheKey, newCode, new MemoryCacheEntryOptions
+                await Helpers.InvalidateSearchCacheAsync(cache, entityType);
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, newCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(newCode),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                 });
-                logger.LogInformation("Pokemon uploaded successfully. New code: {Code}", newCode);
                 return Ok(new { code = newCode });
             }
 
             if (!headers.TryGetValue("count", out var countStr))
             {
-                logger.LogWarning("Missing count header.");
                 return BadRequest(new { error = "missing count header" });
             }
             if (!int.TryParse(countStr, out var count))
             {
-                logger.LogWarning("Count is not an integer.");
                 return BadRequest(new { error = "count is not an integer" });
             }
             if (count < 2 || count > 6)
             {
-                logger.LogWarning("Count must be between 2 and 6.");
                 return BadRequest(new { error = "count must be between 2 and 6" });
             }
             if (!headers.TryGetValue("generations", out var generationsStr))
             {
-                logger.LogWarning("Missing generations header.");
                 return BadRequest(new { error = "missing generations header" });
             }
 
@@ -189,7 +176,6 @@ namespace GPSS_Server.Controllers
 
             if (generations.Count != count)
             {
-                logger.LogWarning("Number of generations does not match count.");
                 return BadRequest(new { error = "number of generations does not match" });
             }
 
@@ -200,7 +186,6 @@ namespace GPSS_Server.Controllers
                 var pkmnFile = files.GetFile($"pkmn{i + 1}");
                 if (pkmnFile == null)
                 {
-                    logger.LogWarning("pkmn{Index} file is missing.", i + 1);
                     return BadRequest(new { error = $"pkmn{i + 1} file is missing." });
                 }
 
@@ -208,7 +193,6 @@ namespace GPSS_Server.Controllers
                 var payload = Helpers.PokemonAndBase64FromForm(pkmnFile, gen);
                 if (payload.pokemon == null)
                 {
-                    logger.LogWarning("pkmn{Index} is not a pokemon.", i + 1);
                     return BadRequest(new { error = $"pkmn{i + 1} is not a pokemon" });
                 }
 
@@ -230,10 +214,10 @@ namespace GPSS_Server.Controllers
                     var code = await Helpers.GenerateDownloadCodeAsync(database, "pokemon");
                     id = await database.InsertPokemonAsync(payload.base64, legality.Valid, code, generations[i]);
                     needsCacheInvalidation = true;
-                    cache.Set($"upload:pokemon:{hash}", code, new MemoryCacheEntryOptions
+                    Helpers.SetAndTrackSearchCache(cache, $"upload:pokemon:{hash}", code, new MemoryCacheEntryOptions
                     {
                         Size = Helpers.GetObjectSizeInBytes(code),
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                     });
                     ids.Add(id.Value);
                 }
@@ -244,7 +228,7 @@ namespace GPSS_Server.Controllers
             }
 
             if (needsCacheInvalidation)
-                Helpers.InvalidateSearchCacheAsync(cache, "pokemon");
+                await Helpers.InvalidateSearchCacheAsync(cache, "pokemon");
 
             var bundleKeyRaw = string.Join(",", pokemonHashes);
             var bundleKeyHash = Helpers.ComputeSha256Hash(bundleKeyRaw);
@@ -252,31 +236,28 @@ namespace GPSS_Server.Controllers
 
             if (cache.TryGetValue(bundleCacheKey, out string? cachedBundleCode) && !string.IsNullOrEmpty(cachedBundleCode))
             {
-                logger.LogInformation("Bundle upload response served from cache for hash: {Hash}", bundleKeyHash);
                 return Ok(new { code = cachedBundleCode });
             }
 
             var bundleCode = await database.CheckIfBundleExistsAsync(ids);
             if (bundleCode != null)
             {
-                cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(bundleCode),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheBundle)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
                 });
-                logger.LogInformation("Bundle already exists. Returning code: {Code}", bundleCode);
                 return Ok(new { code = bundleCode });
             }
 
             bundleCode = await Helpers.GenerateDownloadCodeAsync(database, "bundle");
             await database.InsertBundleAsync(bundleLegal, bundleCode, ((int)minGen!.Value).ToString(), ((int)maxGen!.Value).ToString(), ids);
-            Helpers.InvalidateSearchCacheAsync(cache, "bundle");
-            cache.Set(bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
+            await Helpers.InvalidateSearchCacheAsync(cache, "bundle");
+            Helpers.SetAndTrackSearchCache(cache, bundleCacheKey, bundleCode, new MemoryCacheEntryOptions
             {
                 Size = Helpers.GetObjectSizeInBytes(bundleCode),
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheBundle)
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
             });
-            logger.LogInformation("Bundle uploaded successfully. New code: {Code}", bundleCode);
             return Ok(new { code = bundleCode });
         }
 
@@ -285,19 +266,12 @@ namespace GPSS_Server.Controllers
         /// </summary>
         /// <param name="entityType">The entityType<see cref="string"/>.</param>
         /// <param name="code">The code<see cref="string"/>.</param>
-        /// <param name="download">The download<see cref="bool"/>.</param>
         /// <returns>The <see cref="Task{IActionResult}"/>.</returns>
         [HttpGet("download/{entityType}/{code}")]
-        public async Task<IActionResult> Download(
-            [FromRoute] string entityType,
-            [FromRoute] string code,
-            [FromQuery] bool download = false)
+        public async Task<IActionResult> Download([FromRoute] string entityType, [FromRoute] string code)
         {
-            logger.LogInformation("GET /api/v2/gpss/download/{EntityType}/{Code} | Download: {Download}", entityType, code, download);
-
             if (!_supportedEntities.Contains(entityType))
             {
-                logger.LogWarning("Invalid entity type: {EntityType}", entityType);
                 return BadRequest(new { message = "Invalid entity type." });
             }
 
@@ -305,58 +279,51 @@ namespace GPSS_Server.Controllers
                 entityType == "bundles" || entityType == "bundle" ? "bundle" : "pokemon",
                 code);
 
-            if (!download)
+            if (Helpers.IsPKSM(Request))
             {
-                logger.LogInformation("Download flag is false, returning Ok.");
                 return Ok();
             }
 
-            string cacheKey = $"download:{entityType}:{code}:download={download}";
+            string cacheKey = $"download:{entityType}:{code}";
 
             if (entityType == "pokemon")
             {
                 if (cache.TryGetValue(cacheKey, out GpssPokemon? cachedPokemon) && cachedPokemon != null)
                 {
-                    logger.LogInformation("Pokemon download response served from cache for code: {Code}", code);
                     return Ok(cachedPokemon);
                 }
 
                 var pokemon = (await database.ListPokemonsAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
                 if (string.IsNullOrEmpty(pokemon.DownloadCode))
                 {
-                    logger.LogWarning("Pokemon not found for code: {Code}", code);
                     return NotFound(new { message = "Pokemon not found." });
                 }
 
-                cache.Set(cacheKey, pokemon, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, pokemon, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(pokemon),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CachePokemon)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CachePokemon))
                 });
-                logger.LogInformation("Pokemon download successful for code: {Code}", code);
                 return Ok(pokemon);
             }
             else
             {
                 if (cache.TryGetValue(cacheKey, out GpssBundle? cachedBundle) && cachedBundle != null)
                 {
-                    logger.LogInformation("Bundle download response served from cache for code: {Code}", code);
                     return Ok(cachedBundle);
                 }
 
                 var bundle = (await database.ListBundlesAsync(1, 1, new Search { DownloadCode = code })).FirstOrDefault();
                 if (string.IsNullOrEmpty(bundle.DownloadCode))
                 {
-                    logger.LogWarning("Bundle not found for code: {Code}", code);
                     return NotFound(new { message = "Bundle not found." });
                 }
 
-                cache.Set(cacheKey, bundle, new MemoryCacheEntryOptions
+                Helpers.SetAndTrackSearchCache(cache, cacheKey, bundle, new MemoryCacheEntryOptions
                 {
                     Size = Helpers.GetObjectSizeInBytes(bundle),
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Config.CacheBundle)
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(config.Get(config => config.CacheBundle))
                 });
-                logger.LogInformation("Bundle download successful for code: {Code}", code);
                 return Ok(bundle);
             }
         }
