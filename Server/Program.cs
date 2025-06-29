@@ -8,7 +8,6 @@ namespace GPSS_Server
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.IdentityModel.Tokens;
-    using System.Diagnostics;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -28,6 +27,11 @@ namespace GPSS_Server
         private static readonly ConfigHolder Config = new();
 
         /// <summary>
+        /// Defines the Logger.
+        /// </summary>
+        private static ILogger Logger = null!;
+
+        /// <summary>
         /// The Main.
         /// </summary>
         /// <param name="args">The args<see cref="string[]"/>.</param>
@@ -43,23 +47,23 @@ namespace GPSS_Server
                     logging.AddConsole();
                     logging.AddDebug();
                 });
-                var logger = loggerFactory.CreateLogger<Program>();
+                Logger = loggerFactory.CreateLogger<Program>();
 
-                logger.LogInformation("Starting GPSS Server initialization...");
+                Logger.LogInformation("Starting GPSS Server initialization...");
 
                 builder.Services.AddSingleton(Config);
-                logger.LogInformation("Loaded configuration.");
+                Logger.LogInformation("Loaded configuration.");
 
                 builder.Services.AddMemoryCache(options =>
                 {
                     options.SizeLimit = GC.GetGCMemoryInfo().TotalAvailableMemoryBytes / 3;
                 });
-                logger.LogInformation("Configured Memory cache.");
+                Logger.LogInformation("Configured Memory cache.");
 
 #if DEBUG
                 builder.Services.AddDbContext<GpssDbContext>((sp, options) =>
                     options.UseInMemoryDatabase("MockGpssDb"));
-                logger.LogInformation("Using in-memory database.");
+                Logger.LogInformation("Using in-memory database.");
 #else
                 builder.Services.AddDbContext<GpssDbContext>((sp, options) =>
                 {
@@ -74,13 +78,13 @@ namespace GPSS_Server
                     };
                     options.UseMySql(builder.ConnectionString, ServerVersion.AutoDetect(builder.ConnectionString));
                 });
-                logger.LogInformation("Configured database context.");
+                Logger.LogInformation("Configured database context.");
 #endif
 
                 builder.Services.AddScoped<Database>();
                 builder.Services.AddControllers();
                 builder.Services.AddHostedService<IntegrityChecker>();
-                logger.LogInformation("Registered core services and controllers.");
+                Logger.LogInformation("Registered core services and controllers.");
 
                 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>
@@ -88,7 +92,7 @@ namespace GPSS_Server
                         var jwtKey = Config.Get(config => config.GpssJwtKey);
                         if (string.IsNullOrWhiteSpace(jwtKey))
                         {
-                            logger.LogWarning("No JWT key configured. Using a randomly generated key.");
+                            Logger.LogWarning("No JWT key configured. Using a randomly generated key.");
                             jwtKey = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
                         }
 
@@ -102,7 +106,7 @@ namespace GPSS_Server
                         };
                     });
                 builder.Services.AddAuthorization();
-                logger.LogInformation("Configured authentication and authorization.");
+                Logger.LogInformation("Configured authentication and authorization.");
 
                 builder.WebHost.ConfigureKestrel(options =>
                 {
@@ -123,18 +127,15 @@ namespace GPSS_Server
 
                     if (Helpers.GetAddressFromString(Config.Get(config => config.GpssHost)) is not IPAddress address)
                     {
-                        logger.LogCritical("Invalid Hostname or IP address. Please configure a valid host.");
-                        throw new InvalidOperationException();
+                        throw new InvalidOperationException("Invalid Hostname or IP address. Please configure a valid host.");
                     }
 
                     switch ((http, https))
                     {
                         case (true, true):
-                            logger.LogCritical("Both HTTP and HTTPS are enabled. Please enable only one.");
-                            throw new InvalidOperationException();
+                            throw new InvalidOperationException("Both HTTP and HTTPS are enabled. Please enable only one.");
                         case (false, false):
-                            logger.LogCritical("No HTTP or HTTPS endpoints are enabled. Please enable at least one.");
-                            throw new InvalidOperationException();
+                            throw new InvalidOperationException("No HTTP or HTTPS endpoints are enabled. Please enable at least one.");
                         case (true, false):
                             options.Listen(address, Config.Get(config => config.GpssPort), listenOptions =>
                             {
@@ -146,7 +147,7 @@ namespace GPSS_Server
                             var key = Config.Get(config => config.GpssHttpsKey);
                             if (string.IsNullOrWhiteSpace(cert) || string.IsNullOrWhiteSpace(key))
                             {
-                                logger.LogWarning("No HTTPS certificate/key configured. Using a self-signed certificate for HTTPS.");
+                                Logger.LogWarning("No HTTPS certificate/key configured. Using a self-signed certificate for HTTPS.");
                                 options.Listen(address, Config.Get(config => config.GpssPort), listenOptions =>
                                 {
                                     listenOptions.UseHttps(Helpers.GenerateSelfSignedCertificate(address));
@@ -167,10 +168,10 @@ namespace GPSS_Server
                 });
 
                 Helpers.Init();
-                logger.LogInformation("PKHeX data initialized.");
+                Logger.LogInformation("PKHeX data initialized.");
 
                 var app = builder.Build();
-                logger = app.Services.GetRequiredService<ILogger<Program>>();
+                Logger = app.Services.GetRequiredService<ILogger<Program>>();
 
                 app.UseRouting();
                 app.UseAuthentication();
@@ -192,16 +193,15 @@ namespace GPSS_Server
                 {
                     app.UseHsts();
                     app.UseHttpsRedirection();
-                    logger.LogInformation("HSTS and HTTPS redirection enabled.");
+                    Logger.LogInformation("HSTS and HTTPS redirection enabled.");
                 }
 
-                logger.LogInformation("GPSS Server initialization complete. Server is running.");
+                Logger.LogInformation("GPSS Server initialization complete. Server is running.");
                 app.Run();
             }
             catch (Exception e)
             {
-                Trace.WriteLine($"{e.Message}\n{e.StackTrace}");
-                Console.WriteLine("Error: Failed to start GPSS Server due to an unexpected exception.");
+                Logger.LogCritical(e, "Failed to start GPSS Server due to an unexpected exception.");
                 Environment.Exit(1);
             }
         }
