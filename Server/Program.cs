@@ -8,6 +8,8 @@ namespace GPSS_Server
     using Microsoft.AspNetCore.Server.Kestrel.Core;
     using Microsoft.EntityFrameworkCore;
     using Microsoft.IdentityModel.Tokens;
+    using PKHeX.Core;
+    using PKHeX.Core.AutoMod;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -50,6 +52,11 @@ namespace GPSS_Server
                 Logger = loggerFactory.CreateLogger<Program>();
 
                 Logger.LogInformation("Starting GPSS Server initialization...");
+
+                if (Helpers.IsRunningAsAdminOrRoot())
+                {
+                    throw new InvalidOperationException("Running this application as administrator or root is not supported. Please run as a standard user.");
+                }
 
                 builder.Services.AddSingleton(Config);
                 Logger.LogInformation("Loaded configuration.");
@@ -167,7 +174,9 @@ namespace GPSS_Server
 #endif
                 });
 
-                Helpers.Init();
+                EncounterEvent.RefreshMGDB(string.Empty);
+                RibbonStrings.ResetDictionary(GameInfo.Strings.ribbons);
+                Legalizer.EnableEasterEggs = false;
                 Logger.LogInformation("PKHeX data initialized.");
 
                 var app = builder.Build();

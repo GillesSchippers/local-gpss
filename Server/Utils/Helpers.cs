@@ -6,7 +6,6 @@ namespace GPSS_Server.Utils
     using MessagePack.Resolvers;
     using Microsoft.Extensions.Caching.Memory;
     using PKHeX.Core;
-    using PKHeX.Core.AutoMod;
     using System.Collections.Concurrent;
     using System.Dynamic;
     using System.Net;
@@ -26,23 +25,6 @@ namespace GPSS_Server.Utils
         /// Defines the SearchCacheKeys.
         /// </summary>
         private static readonly ConcurrentDictionary<string, byte> SearchCacheKeys = new();
-
-        /// <summary>
-        /// The Init.
-        /// </summary>
-        public static void Init()
-        {
-            if (IsRunningAsAdminOrRoot())
-            {
-                throw new InvalidOperationException("Running this application as administrator or root is not supported. Please run as a standard user.");
-            }
-
-            EncounterEvent.RefreshMGDB(string.Empty);
-            RibbonStrings.ResetDictionary(GameInfo.Strings.ribbons);
-            Legalizer.EnableEasterEggs = false;
-
-            return;
-        }
 
         /// <summary>
         /// The EntityContextFromString.
