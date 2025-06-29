@@ -79,11 +79,10 @@ namespace GPSS_Client.Services
         /// The DownloadPokemonAsync.
         /// </summary>
         /// <param name="code">The code<see cref="string"/>.</param>
-        /// <param name="download">The download<see cref="bool"/>.</param>
         /// <returns>The <see cref="Task{GpssPokemon?}"/>.</returns>
-        public async Task<GpssPokemon?> DownloadPokemonAsync(string code, bool download = true)
+        public async Task<GpssPokemon?> DownloadPokemonAsync(string code)
         {
-            var response = await Client.GetAsync($"/api/v2/gpss/download/pokemon/{code}?download={download.ToString().ToLower()}");
+            var response = await Client.GetAsync($"/api/v2/gpss/download/pokemon/{code}");
             if (!response.IsSuccessStatusCode)
                 return null;
             return await response.Content.ReadFromJsonAsync<GpssPokemon>();
@@ -93,11 +92,10 @@ namespace GPSS_Client.Services
         /// The DownloadBundleAsync.
         /// </summary>
         /// <param name="code">The code<see cref="string"/>.</param>
-        /// <param name="download">The download<see cref="bool"/>.</param>
         /// <returns>The <see cref="Task{GpssBundle?}"/>.</returns>
-        public async Task<GpssBundle?> DownloadBundleAsync(string code, bool download = true)
+        public async Task<GpssBundle?> DownloadBundleAsync(string code)
         {
-            var response = await Client.GetAsync($"/api/v2/gpss/download/bundle/{code}?download={download.ToString().ToLower()}");
+            var response = await Client.GetAsync($"/api/v2/gpss/download/bundle/{code}");
             if (!response.IsSuccessStatusCode)
                 return null;
             return await response.Content.ReadFromJsonAsync<GpssBundle>();

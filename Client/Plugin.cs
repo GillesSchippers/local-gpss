@@ -12,6 +12,7 @@
     /// </summary>
     public class Plugin : IPlugin
     {
+#pragma warning disable CS1998 // This async method lacks 'await' operators and will run synchronously.
         /// <summary>
         /// Gets the Name.
         /// </summary>
@@ -65,7 +66,7 @@
         {
             var items = menuStrip.Items;
             if (items.Find("Menu_Tools", false)[0] is not ToolStripDropDownItem tools)
-                throw new ArgumentException(nameof(menuStrip));
+                throw new ArgumentException(null, nameof(menuStrip));
             AddPluginControl(tools);
         }
 
@@ -135,5 +136,6 @@
         {
             return false; // no action taken
         }
+#pragma warning restore CS1998 // This async method lacks 'await' operators and will run synchronously.
     }
 }

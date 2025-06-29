@@ -2,20 +2,44 @@
 {
     using GPSS_Client.Config;
 
+    /// <summary>
+    /// Defines the <see cref="ConfigForm" />.
+    /// </summary>
     public partial class ConfigForm : Form
     {
+        /// <summary>
+        /// Defines the Config.
+        /// </summary>
         private readonly ConfigHolder Config;
 
+        /// <summary>
+        /// Defines the InputGpssUrl.
+        /// </summary>
         private TextBox InputGpssUrl = null!;
+
+        /// <summary>
+        /// Defines the BtnOk.
+        /// </summary>
         private Button BtnOk = null!;
+
+        /// <summary>
+        /// Defines the BtnCancel.
+        /// </summary>
         private Button BtnCancel = null!;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConfigForm"/> class.
+        /// </summary>
+        /// <param name="config">The config<see cref="ConfigHolder"/>.</param>
         public ConfigForm(ConfigHolder config)
         {
             Config = config;
             InitializeComponent();
         }
 
+        /// <summary>
+        /// The InitializeComponent.
+        /// </summary>
         private void InitializeComponent()
         {
             this.Text = "GPSS Client Configuration";
@@ -44,6 +68,11 @@
             this.CancelButton = BtnCancel;
         }
 
+        /// <summary>
+        /// The OnBtnOk_Click.
+        /// </summary>
+        /// <param name="sender">The sender<see cref="object?"/>.</param>
+        /// <param name="e">The e<see cref="EventArgs"/>.</param>
         private void OnBtnOk_Click(object? sender, EventArgs e)
         {
             Config.Set(config => config.GpssUrl, InputGpssUrl.Text);
